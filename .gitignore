@@ -1,10 +1,17 @@
-# ki?isel / oturum verileri: ASLA y?kleme
+# kişisel / oturum verileri: ASLA yükleme
 browser.json
 .login-profile/
 .cache/
 spicetify/round.json
 
-# derleme ??kt?lar?
+# yalnızca yerel (yayınlanmaz)
+web/
+server.py
+login.py
+start.bat
+requirements.txt
+
+# derleme çıktıları
 __pycache__/
 spicetify/corners/*.exe
 release/

@@ -6,7 +6,6 @@
 
 Şarkıyla birlikte akan, akıcı animasyonlu söz ekranı ve siyah + bordo (#990033) cam görünümlü, yumuşak köşeli bir Spotify masaüstü teması.
 Hafif çalışacak şekilde tasarlandı: arka planda neredeyse hiç kaynak harcamaz, oyun oynarken hissedilmez.
-Ayrıca YouTube Music ile çalışan bağımsız bir web sürümü var.
 
 > Windows · Spotify masaüstü (spotify.com sürümü) · [Spicetify](https://spicetify.app) üzerinde çalışır
 
@@ -78,18 +77,6 @@ Sol üstteki **palet** düğmesi. Değişiklikler anında uygulanır.
 
 ---
 
-## Web sürümü (YouTube Music)
-
-Spotify gerektirmeyen, tarayıcıda çalışan sürüm: YouTube Music'ten arar ve çalar, aynı söz modlarını gösterir (+ klibi arka planda oynatan **Video** modu).
-
-```
-pip install -r requirements.txt
-python server.py        # http://localhost:8787
-```
-Ya da `start.bat`. YouTube Music hesabı bağlamak isteğe bağlıdır (sağ üstteki kişi simgesi).
-
----
-
 ## Telefon?
 
 Spotify'ın telefon uygulamasına tema/eklenti **kurulamaz**: Spicetify yalnızca masaüstü uygulamasını değiştirebilir. iOS'ta bu tamamen imkânsız; Android'de yalnızca değiştirilmiş (korsan) Spotify APK'larıyla olur, bu da hesap kapatılma riski taşır.
@@ -102,7 +89,7 @@ Spotify'ın telefon uygulamasına tema/eklenti **kurulamaz**: Spicetify yalnızc
 spicetify/src/        eklenti kaynağı (app.js, studio.js, drawers.js, style.css)
 spicetify/theme/      tema (user.css, color.ini)
 spicetify/corners/    köşe programı (ZLyricsCorners.cs)
-web/js/               söz motoru (flow/karaoke/focus) - web ve eklentide ortak
+spicetify/src/engine/ söz motoru (akış / karaoke / odak)
 ```
 `python spicetify/build.py --apply` derler (`spicetify/dist/`) ve kendi Spotify'ınıza uygular.  
 Sürüm: `python tools/make_release.py 1.2.3` → özetleri `install.ps1`'e yazar, `release/` klasörünü hazırlar; ardından `gh release create v1.2.3 release/*`.

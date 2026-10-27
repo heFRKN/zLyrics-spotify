@@ -1,4 +1,4 @@
-// zLyrics — derlenmiş dosya, düzenleme: spicetify/src + web/js
+// zLyrics — derlenmiş dosya, düzenleme: spicetify/src
 (function zlyrics() {
 'use strict';
 { const st = document.createElement('style'); st.id = 'zlyrics-style';

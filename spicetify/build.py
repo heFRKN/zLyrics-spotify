@@ -3,7 +3,7 @@
     python spicetify/build.py           -> derle + kopyala
     python spicetify/build.py --apply   -> + spicetify apply (Spotify yeniden başlar)
 
-Söz motoru web sitesiyle ortaktır (web/js); ES modül import/export'ları
+Söz motoru (src/engine) ES modülleri halinde yazılır; import/export'lar
 ayıklanıp tek bir IIFE içine konur.
 """
 
@@ -15,7 +15,7 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-WEB_JS = os.path.join(HERE, "..", "web", "js")
+ENGINE = os.path.join(HERE, "src", "engine")
 SHARED = ["util.js", "lyrics.js", "flow.js", "karaoke.js", "focus.js"]
 SPICE = os.path.join(os.environ["APPDATA"], "spicetify")
 CLI = os.path.join(os.environ["LOCALAPPDATA"], "spicetify", "spicetify.exe")
@@ -29,7 +29,7 @@ def strip_module(src):
 def build():
     parts = []
     for name in SHARED:
-        with open(os.path.join(WEB_JS, name), encoding="utf-8") as f:
+        with open(os.path.join(ENGINE, name), encoding="utf-8") as f:
             parts.append(f"// ── {name}\n" + strip_module(f.read()))
     with open(os.path.join(HERE, "src", "style.css"), encoding="utf-8") as f:
         css = f.read()
@@ -39,7 +39,7 @@ def build():
             app += f"// ── {name}\n" + f.read() + "\n"
 
     js = "\n".join([
-        "// zLyrics — derlenmiş dosya, düzenleme: spicetify/src + web/js",
+        "// zLyrics — derlenmiş dosya, düzenleme: spicetify/src",
         "(function zlyrics() {",
         "'use strict';",
         "{ const st = document.createElement('style'); st.id = 'zlyrics-style';",
