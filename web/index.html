@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <title>zLyrics</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23000'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23990033'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..900&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-mode="flow">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.6v12.8c0 .8.9 1.3 1.6.9l10.2-6.4c.6-.4.6-1.4 0-1.8L9.6 4.7C8.9 4.3 8 4.8 8 5.6Z" fill="currentColor"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5" width="3.6" height="14" rx="1.3" fill="currentColor"/><rect x="13.9" y="5" width="3.6" height="14" rx="1.3" fill="currentColor"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M4 7.2v9.6c0 .7.8 1.1 1.4.7l7-4.8c.5-.3.5-1.1 0-1.4l-7-4.8C4.8 6.1 4 6.5 4 7.2Zm8.5 0v9.6c0 .7.8 1.1 1.4.7l7-4.8c.5-.3.5-1.1 0-1.4l-7-4.8c-.6-.4-1.4 0-1.4.7Z" fill="currentColor"/></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="M20 7.2v9.6c0 .7-.8 1.1-1.4.7l-7-4.8c-.5-.3-.5-1.1 0-1.4l7-4.8c.6-.4 1.4 0 1.4.7Zm-8.5 0v9.6c0 .7-.8 1.1-1.4.7l-7-4.8c-.5-.3-.5-1.1 0-1.4l7-4.8c.6-.4 1.4 0 1.4.7Z" fill="currentColor"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9.5 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 14.5 6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-queue" viewBox="0 0 24 24"><path d="M4 6h12M4 11h12M4 16h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 14.2v5.6c0 .5.5.8.9.5l4-2.8c.4-.3.4-.8 0-1.1l-4-2.8c-.4-.2-.9.1-.9.6Z" fill="currentColor"/></symbol>
+    <symbol id="i-tune" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="15" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4.5 9V5.8c0-.7.6-1.3 1.3-1.3H9M15 4.5h3.2c.7 0 1.3.6 1.3 1.3V9M19.5 15v3.2c0 .7-.6 1.3-1.3 1.3H15M9 19.5H5.8c-.7 0-1.3-.6-1.3-1.3V15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9.5v5c0 .6.4 1 1 1h2.6l4.1 3.4c.7.5 1.6.1 1.6-.8V5.9c0-.8-.9-1.3-1.6-.8L7.6 8.5H5c-.6 0-1 .4-1 1Z" fill="currentColor"/><path d="M16.3 9a4.2 4.2 0 0 1 0 6M18.8 6.5a7.8 7.8 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5v5c0 .6.4 1 1 1h2.6l4.1 3.4c.7.5 1.6.1 1.6-.8V5.9c0-.8-.9-1.3-1.6-.8L7.6 8.5H5c-.6 0-1 .4-1 1Z" fill="currentColor"/><path d="m16.5 9.5 5 5m0-5-5 5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.8 19.5c1.3-3.2 4-4.8 7.2-4.8s5.9 1.6 7.2 4.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<!-- arka plan: albüm renkleri + #990033 -->
+<div class="ambient" id="ambient" aria-hidden="true">
+  <div class="amb-art" id="amb-a"></div>
+  <div class="amb-art" id="amb-b"></div>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div class="blob b4"></div>
+  <div class="amb-shade"></div>
+  <div class="grain"></div>
+</div>
+
+<div class="yt-wrap" id="yt-wrap" aria-hidden="true"><div id="yt"></div><div class="yt-shade"></div></div>
+
+<!-- ============================== ANA SAYFA -->
+<main class="view home is-active" id="home">
+  <header class="home-top">
+    <div class="wordmark">zLyrics<i></i></div>
+    <button class="glass icon-btn" id="btn-account" aria-label="YouTube Music hesabı">
+      <svg><use href="#i-user"/></svg>
+    </button>
+  </header>
+
+  <section class="hero" id="hero">
+    <h1 class="hero-title">Ne dinliyoruz<span>?</span></h1>
+    <form class="search glass" id="search-form" autocomplete="off">
+      <svg class="s-ico"><use href="#i-search"/></svg>
+      <input id="q" type="search" placeholder="Şarkı ya da sanatçı ara" spellcheck="false">
+      <kbd>/</kbd>
+    </form>
+  </section>
+
+  <section class="results" id="results"></section>
+  <section class="shelves" id="shelves"></section>
+
+  <button class="mini glass" id="mini" hidden>
+    <img id="mini-art" alt="">
+    <span class="mini-txt"><b id="mini-title"></b><span id="mini-artist"></span></span>
+    <span class="mini-eq"><i></i><i></i><i></i></span>
+    <svg class="mini-up"><use href="#i-up"/></svg>
+  </button>
+</main>
+
+<!-- ============================== SAHNE -->
+<section class="view stage" id="stage">
+  <div class="stage-top chrome">
+    <button class="glass icon-btn" id="btn-back" aria-label="Geri"><svg><use href="#i-down"/></svg></button>
+    <div class="now">
+      <img id="now-art" alt="">
+      <div class="now-txt"><b id="now-title"></b><span id="now-artist"></span></div>
+    </div>
+    <div class="modes glass" id="modes" role="tablist">
+      <span class="modes-pill"></span>
+      <button data-mode="flow">Akış</button>
+      <button data-mode="karaoke">Karaoke</button>
+      <button data-mode="focus">Odak</button>
+      <button data-mode="video">Video</button>
+    </div>
+    <button class="glass icon-btn" id="btn-settings" aria-label="Ayarlar"><svg><use href="#i-tune"/></svg></button>
+  </div>
+
+  <div class="lyrics-host" id="lyrics-host">
+    <div class="layer flow" id="m-flow"></div>
+    <div class="layer karaoke" id="m-karaoke"></div>
+    <div class="layer focus" id="m-focus"></div>
+    <div class="layer subs" id="m-video"></div>
+    <div class="layer plain" id="m-plain"></div>
+    <div class="layer empty" id="m-empty">
+      <img id="empty-art" alt="">
+      <p id="empty-msg"></p>
+    </div>
+    <div class="loader" id="loader"><i></i><i></i><i></i></div>
+  </div>
+
+  <div class="dock glass chrome" id="dock">
+    <div class="dock-ctrl">
+      <button class="icon-btn ghost" id="btn-prev" aria-label="Önceki"><svg><use href="#i-prev"/></svg></button>
+      <button class="icon-btn play" id="btn-play" aria-label="Oynat"><svg><use href="#i-play"/></svg></button>
+      <button class="icon-btn ghost" id="btn-next" aria-label="Sonraki"><svg><use href="#i-next"/></svg></button>
+    </div>
+    <div class="timeline">
+      <span class="t" id="t-cur">0:00</span>
+      <div class="bar" id="bar"><div class="bar-buf"></div><div class="bar-fill" id="bar-fill"></div></div>
+      <span class="t" id="t-dur">0:00</span>
+    </div>
+    <div class="dock-side">
+      <div class="vol">
+        <button class="icon-btn ghost" id="btn-mute" aria-label="Ses"><svg><use href="#i-vol"/></svg></button>
+        <div class="bar vol-bar" id="vol-bar"><div class="bar-fill" id="vol-fill"></div></div>
+      </div>
+      <button class="icon-btn ghost" id="btn-queue" aria-label="Sıradakiler"><svg><use href="#i-queue"/></svg></button>
+      <button class="icon-btn ghost" id="btn-fs" aria-label="Tam ekran"><svg><use href="#i-expand"/></svg></button>
+    </div>
+  </div>
+
+  <aside class="panel queue glass" id="queue">
+    <header><b>Sıradakiler</b><button class="icon-btn ghost sm" data-close><svg><use href="#i-close"/></svg></button></header>
+    <ol id="queue-list"></ol>
+  </aside>
+
+  <aside class="panel settings glass" id="settings">
+    <header><b>Görünüm</b><button class="icon-btn ghost sm" data-close><svg><use href="#i-close"/></svg></button></header>
+    <div class="row">
+      <label>Senkron</label>
+      <div class="stepper">
+        <button data-off="-0.1">−</button><output id="off-val">0.0s</output><button data-off="0.1">+</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>Yazı boyutu</label>
+      <div class="seg" id="seg-size">
+        <button data-v="s">S</button><button data-v="m">M</button><button data-v="l">L</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>Hizalama</label>
+      <div class="seg" id="seg-align">
+        <button data-v="left">Sol</button><button data-v="center">Orta</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>Hareketli arka plan</label>
+      <button class="switch" id="sw-motion" role="switch"><i></i></button>
+    </div>
+    <p class="src" id="lyr-src"></p>
+  </aside>
+</section>
+
+<!-- ============================== HESAP -->
+<div class="modal" id="account" hidden>
+  <div class="modal-card glass">
+    <header>
+      <b>YouTube Music hesabı</b>
+      <button class="icon-btn ghost sm" data-close><svg><use href="#i-close"/></svg></button>
+    </header>
+    <div id="acc-off">
+      <p class="acc-lead">Bir tarayıcı penceresi açılacak. YouTube hesabınla giriş yap, pencere kendiliğinden kapanır ve hesabın bağlanır.</p>
+      <button class="btn" id="acc-login"><span id="acc-login-txt">Google ile giriş yap</span></button>
+      <p class="acc-state" id="acc-state"></p>
+      <details class="manual">
+        <summary>Elle bağla</summary>
+      <ol class="steps">
+        <li><a href="https://music.youtube.com" target="_blank" rel="noopener">music.youtube.com</a>'u aç, giriş yaptığından emin ol.</li>
+        <li><kbd>F12</kbd> → <b>Ağ / Network</b> sekmesi. Filtreye <code>browse</code> yaz, sayfayı yenile.</li>
+        <li>Bir <code>browse</code> isteğine tıkla → <b>Request Headers</b> bölümünün tamamını kopyala.</li>
+        <li>Aşağıya yapıştır. Bilgiler sadece bu bilgisayarda <code>browser.json</code> içinde durur.</li>
+      </ol>
+      <textarea id="acc-headers" spellcheck="false" placeholder="accept: */*&#10;authorization: SAPISIDHASH …&#10;cookie: …"></textarea>
+      <button class="btn ghost" id="acc-save">Header ile bağla</button>
+      </details>
+    </div>
+    <div id="acc-on" hidden>
+      <p class="acc-ok"><i></i>Hesabın bağlı. Kitaplığın ana sayfada.</p>
+      <button class="btn ghost" id="acc-logout">Bağlantıyı kes</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast glass" id="toast"></div>
+
+<script src="https://www.youtube.com/iframe_api" async></script>
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>

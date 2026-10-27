@@ -1,0 +1,309 @@
+/* ───────────────────────────────────────────── zLyrics · Spotify teması
+   Sabit kancalar: #global-nav-bar, #Desktop_LeftSidebar_Id, #main-view,
+   #Desktop_PanelContainer_Id, .main-nowPlayingBar-container, [data-encore-id=card],
+   [data-testid=component-shelf], .view-homeShortcutsGrid-*. Rastgele (hash) sınıflara dokunulmaz.
+
+   Ayarlar (zLyrics Stüdyo, üst çubuktaki palet) :root'a satır içi yazılır:
+   --nk-accent, --nk-accent-hi, --nk-r, --nk-panel-a, --nk-glow
+   Sınıflar: html.nk-noart / nk-still / nk-noanim / nk-font-spotify
+
+   Performans kuralı: hareketli arka planın üstünde backdrop-filter YOK (her karede yeniden bulanıklaştırma),
+   :root'ta canlanan değişken YOK (tüm sayfa her karede yeniden hesaplanır). */
+
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300..900&family=Inter+Tight:wght@400..900&display=swap");
+
+:root {
+  --nk-accent: #990033;
+  --nk-accent-hi: #ff3d6f;
+  --nk-r: 28px;
+  --nk-panel-a: .55;
+  --nk-glow: .8;
+  --nk-rim-a: .6;
+  --nk-shadow-a: .7;
+  --nk-font: "Geist", SpotifyMixUI, "Helvetica Neue", Arial, sans-serif;
+  --nk-rim: rgba(255, 255, 255, calc(.125 * var(--nk-rim-a)));
+  --nk-ease: cubic-bezier(.22, 1, .36, 1);
+  --nk-spring: cubic-bezier(.34, 1.5, .64, 1);
+  --nk-a10: color-mix(in srgb, var(--nk-accent) 10%, transparent);
+  --nk-a30: color-mix(in srgb, var(--nk-accent) 30%, transparent);
+  --nk-a60: color-mix(in srgb, var(--nk-accent) 60%, transparent);
+  --nk-glass: linear-gradient(165deg,
+      rgba(26, 26, 32, calc(var(--nk-panel-a) * .85)) 0%,
+      rgba(12, 12, 15, var(--nk-panel-a)) 45%,
+      rgba(10, 10, 12, calc(var(--nk-panel-a) * 1.1)) 100%);
+  --background-press: #1a1a1e;
+}
+
+/* ── yazı tipi */
+/* Spotify yazı tipini --encore-*-font-stack değişkenlerinden alıyor (:root ve .spotify-mix-non-latin).
+   Yalnızca bu değişkenleri değiştirmek, her elemente font zorlamakla aynı görünümü verir; tarayıcıya yük
+   bindirmez. (Önceki 'body * { font-family !important }' kuralı her sayfa geçişini ~%20 yavaşlatıyordu.) */
+/* Spotify bunları '@layer fonts' içinde !important tanımlıyor; !important'ta katmanlı tanım katmansızı yener.
+   Bu yüzden aynı katmana, daha belirgin seçiciyle (html:not(...).spotify-mix-non-latin > .spotify-mix-non-latin) yazıyoruz. */
+@layer fonts {
+  html:not(.nk-font-spotify), html.spotify-mix-non-latin:not(.nk-font-spotify) {
+    --encore-body-font-stack: var(--nk-font) !important;
+    --encore-title-font-stack: var(--nk-font) !important;
+    --encore-variable-font-stack: var(--nk-font) !important;
+  }
+}
+#zlyrics .nk-t, #zlyrics .nk-seg output, #zlyrics kbd { font-family: "Geist Mono", ui-monospace, monospace !important; }
+body { letter-spacing: -.005em; }
+::selection { background: var(--nk-accent); color: #fff; }
+
+/* ── zemin: siyah + kapak ışığı (#nk-ambient eklentiden gelir) */
+html, body { background: #000 !important; }
+.Root, .Root__top-container { background: transparent !important; }
+.Root__top-container { position: relative; }
+#nk-ambient { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; background: #000; }
+#nk-ambient canvas.art {
+  position: absolute; left: -20%; top: -20%; width: 140%; height: 140%;
+  opacity: 0;
+  transition: opacity 2.2s var(--nk-ease);
+}
+#nk-ambient canvas.art.on { opacity: calc(.55 * var(--nk-glow)); }
+html.nk-noart #nk-ambient canvas.art { display: none; }
+/* Hareketli ışıklar 48x48 tuvale çizilir (eklenti), burada sadece büyütülüp kaydırılır:
+   ekran kartında ~1500px'lik katman yerine birkaç KB'lik doku. */
+#nk-ambient canvas.g { position: absolute; will-change: transform; }
+#nk-ambient .g1 { width: 27vmax; height: 27vmax; left: -25vmax; top: -35vmax; margin: 26.5vmax 0 0 26.5vmax; opacity: var(--nk-glow); transform: scale(3); animation: nk-drift-a 38s ease-in-out infinite alternate; }
+#nk-ambient .g2 { width: 30vmax; height: 30vmax; right: -30vmax; bottom: -45vmax; margin: 0 30vmax 30vmax 0; opacity: calc(.85 * var(--nk-glow)); transform: scale(3); animation: nk-drift-b 46s ease-in-out infinite alternate; }
+/* sabit ışık: hareket etmediği için ayrı katman olmaz, doğrudan zemine boyanır */
+#nk-ambient i.g3 {
+  position: absolute; border-radius: 50%;
+  width: 60vmax; height: 60vmax; left: -15vmax; bottom: -35vmax;
+  background: radial-gradient(closest-side, var(--nk-a60), transparent);
+  opacity: var(--nk-glow);
+}
+html.nk-still #nk-ambient canvas.g { animation: none; }
+#nk-ambient.paused canvas.g { animation-play-state: paused; } /* müzik dururken pencere boşta kalsın */
+/* pencere kenarları koyu: yuvarlak köşelerde arka plan ışığı griye boyamasın, çerçeve tek parça görünsün */
+#nk-ambient::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(150% 140% at 50% 45%, transparent 52%, rgba(0, 0, 0, .8) 100%);
+}
+@keyframes nk-drift-a { from { transform: scale(3); } to { transform: translate3d(18vmax, 10vmax, 0) scale(3.45); } }
+@keyframes nk-drift-b { from { transform: scale(3); } to { transform: translate3d(-14vmax, -8vmax, 0) scale(2.7); } }
+
+/* ── üst bar */
+#global-nav-bar { background: transparent !important; }
+#global-nav-bar input[type="search"],
+#global-nav-bar form[role="search"] input {
+  background: rgba(255, 255, 255, .07) !important;
+  border-radius: 999px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 0 0 1px var(--nk-rim) !important;
+  transition: box-shadow .45s var(--nk-ease), background .3s;
+}
+#global-nav-bar input[type="search"]:focus,
+#global-nav-bar form[role="search"] input:focus {
+  background: rgba(255, 255, 255, .1) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 0 0 1px var(--nk-accent), 0 0 46px -8px var(--nk-a60) !important;
+}
+#global-nav-bar button[aria-label] {
+  background: rgba(255, 255, 255, .06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);
+}
+
+/* ── paneller: yarı saydam cam, arkadaki kapak ışığı içinden süzülür */
+#Desktop_LeftSidebar_Id,
+#main-view,
+#Desktop_PanelContainer_Id {
+  position: relative;
+  background: var(--nk-glass) !important;
+  border-radius: var(--nk-r) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .11),
+    inset 0 0 0 1px var(--nk-rim),
+    0 30px 70px -30px rgba(0, 0, 0, calc(.95 * var(--nk-shadow-a)));
+  overflow: hidden;
+}
+#Desktop_LeftSidebar_Id::after,
+#main-view::after,
+#Desktop_PanelContainer_Id::after {
+  content: "";
+  position: absolute; inset: 0; z-index: 2;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(155deg, rgba(255, 255, 255, calc(.46 * var(--nk-rim-a))), rgba(255, 255, 255, calc(.07 * var(--nk-rim-a))) 28%, transparent 55%, rgba(255, 255, 255, calc(.13 * var(--nk-rim-a))));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+#Desktop_LeftSidebar_Id nav,
+#Desktop_LeftSidebar_Id nav > div,
+#Desktop_PanelContainer_Id > div,
+#main-view .main-view-container,
+#main-view .main-view-container__scroll-node,
+#main-view .main-view-container__scroll-node-child {
+  background: transparent !important;
+  border-radius: var(--nk-r) !important;
+}
+
+/* Sayfa başlık rengi: Spotify 256px'lik bir zeminle tam opak siyaha iniyor; yarı saydam panelde
+   bu, keskin bir çizgi olarak görünüyordu. Rengi şeffaflığa erit. */
+#main-view .main-view-container__scroll-node-child > main > div > div[style^="background-color"] {
+  background-image: none !important;
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, .9) 0%, transparent 100%);
+  opacity: .55;
+}
+.main-entityHeader-backgroundColor,
+.main-actionBarBackground-background { opacity: .6; }
+.main-actionBarBackground-background { -webkit-mask-image: linear-gradient(180deg, #000, transparent); }
+.main-entityHeader-overlay { background: linear-gradient(transparent 0, rgba(0, 0, 0, .35)) !important; }
+.main-topBar-background { background-color: rgba(14, 14, 17, .6) !important; backdrop-filter: blur(24px) saturate(160%); }
+
+/* ── sayfa geçişleri
+   Sayfa içeriği tek parça olarak, yalnızca saydamlıkla belirir. Her bölümü ayrı ayrı kaydırmak her geçişte
+   onlarca katman açtırıp geçişi ~%20 yavaşlatıyordu. */
+@keyframes nk-rise { from { opacity: 0; } }
+.main-view-container__scroll-node-child > main {
+  animation: nk-rise .25s var(--nk-ease) backwards;
+}
+
+/* ── çalma çubuğu */
+.main-nowPlayingBar-container {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .085), rgba(255, 255, 255, .025)), rgba(14, 14, 18, var(--nk-panel-a)) !important;
+  border-radius: var(--nk-r) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .16),
+    inset 0 0 0 1px var(--nk-rim),
+    0 24px 60px -20px rgba(0, 0, 0, calc(.9 * var(--nk-shadow-a))),
+    0 0 80px -34px var(--nk-a60);
+}
+.main-nowPlayingBar-container * { border-color: transparent; }
+.main-nowPlayingBar-left img { border-radius: max(6px, calc(var(--nk-r) - 8px)) !important; transition: transform .6s var(--nk-spring); }
+/* kapak çubuğun kenarından her yönde 8px: çubuk 72px, kapak 56px -> dikeyde zaten 8; yatayda da 8 */
+.main-nowPlayingBar-container { padding: 0 8px !important; }
+.main-nowPlayingBar-left { padding-left: 0 !important; }
+.main-nowPlayingBar-left img:hover { transform: scale(1.06); }
+.nk-swap .main-nowPlayingBar-left img { animation: nk-cover-swap .9s var(--nk-spring); }
+.nk-swap .main-nowPlayingBar-left a { animation: nk-text-swap .7s var(--nk-ease); }
+@keyframes nk-cover-swap { 0% { transform: scale(.7) rotate(-6deg); opacity: 0; } }
+@keyframes nk-text-swap { 0% { opacity: 0; transform: translateY(6px); } }
+
+.player-controls__buttons button[data-testid="control-button-playpause"] {
+  background: #fff !important; color: #000 !important;
+  transform: scale(1.1);
+  box-shadow: 0 8px 26px -8px rgba(255, 255, 255, .45);
+  transition: transform .5s var(--nk-spring) !important;
+}
+.player-controls__buttons button[data-testid="control-button-playpause"]:hover { transform: scale(1.18); }
+.player-controls__buttons button[data-testid="control-button-playpause"]:active { transform: scale(.95); }
+
+.x-progressBar-progressBarBg { border-radius: 99px !important; }
+.playback-bar .x-progressBar-fillColor,
+.main-nowPlayingBar-volumeBar .x-progressBar-fillColor { background: #fff !important; }
+.playback-bar:hover .x-progressBar-fillColor,
+.main-nowPlayingBar-volumeBar:hover .x-progressBar-fillColor {
+  background: linear-gradient(90deg, #fff, var(--nk-accent-hi)) !important;
+}
+.progress-bar__slider { box-shadow: 0 0 0 5px color-mix(in srgb, var(--nk-accent-hi) 25%, transparent) !important; }
+.playback-bar__progress-time-elapsed,
+.main-playbackBarRemainingTime-container { font-variant-numeric: tabular-nums; opacity: .7; }
+
+
+/* ── kartlar (üstüne gelince sadece transform: gölge/resim büyütme her karede yeniden çizim istiyordu) */
+[data-encore-id="card"], .main-card-card {
+  background: transparent !important;
+  border-radius: calc(var(--nk-r) * .78) !important;
+  transition: background .25s var(--nk-ease), transform .35s var(--nk-spring) !important;
+}
+[data-encore-id="card"]:hover, .main-card-card:hover {
+  background: rgba(255, 255, 255, .07) !important;
+  transform: translateY(-4px);
+}
+[data-encore-id="card"]:active, .main-card-card:active { transform: scale(.97); }
+[data-encore-id="card"] img, .main-cardImage-image { border-radius: calc(var(--nk-r) * .57) !important; }
+[data-encore-id="card"] [class*="imageContainer"], .main-cardImage-imageWrapper {
+  border-radius: calc(var(--nk-r) * .57) !important; overflow: hidden;
+  box-shadow: 0 16px 30px -16px rgba(0, 0, 0, .9) !important;
+}
+
+/* ── ana sayfa kısayol kutuları: tek parça temiz cam, resim içeride yuvarlak */
+.view-homeShortcutsGrid-shortcut {
+  background: rgba(255, 255, 255, .055) !important;
+  border-radius: calc(var(--nk-r) * .5) !important;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07), inset 0 0 0 1px rgba(255, 255, 255, .04);
+  transition: background .2s, transform .35s var(--nk-spring) !important;
+}
+.view-homeShortcutsGrid-shortcut:hover { background: rgba(255, 255, 255, .1) !important; transform: translateY(-2px); }
+/* Resim kutunun tam yüksekliğinde kalır, yalnızca görsel olarak %80'e iner: kutu 48 de olsa 80 de olsa
+   dört kenarda eşit boşluk (dolgu vermek kutuyu taşırıp yazıyı kaydırıyordu). */
+.view-homeShortcutsGrid-imageHolder { padding: 0 !important; }
+.view-homeShortcutsGrid-imageWrapper { background: transparent !important; scale: .8; }
+.view-homeShortcutsGrid-imageWrapper,
+.view-homeShortcutsGrid-imageWrapper img,
+.view-homeShortcutsGrid-imageContainer img { border-radius: calc(var(--nk-r) * .42) !important; overflow: hidden; }
+.view-homeShortcutsGrid-main { padding-left: 4px; }
+[data-testid="shortcut-background"] { border-radius: inherit !important; opacity: .35; }
+
+.main-entityHeader-image, .main-entityHeader-imagePlaceholder {
+  border-radius: calc(var(--nk-r) * .86) !important;
+  box-shadow: 0 40px 70px -24px rgba(0, 0, 0, .95), 0 0 100px -30px var(--nk-a60) !important;
+}
+
+/* ── şarkı listeleri */
+.main-trackList-trackListRow { border-radius: calc(var(--nk-r) * .5) !important; transition: background .25s; }
+.main-trackList-trackListRow:hover { background: rgba(255, 255, 255, .07) !important; }
+.main-trackList-trackListRow[aria-selected="true"],
+.main-trackList-selected { background: var(--nk-a30) !important; }
+.main-trackList-playingIcon, .main-trackList-rowTitle[data-is-playing="true"] { color: var(--nk-accent-hi) !important; }
+.main-trackList-trackListHeaderStuck { background: rgba(14, 14, 17, .7) !important; backdrop-filter: blur(24px) saturate(160%); }
+
+button[data-testid="play-button"] > span,
+.main-playButton-PlayButton button {
+  background-color: var(--nk-accent) !important;
+  color: #fff !important;
+  box-shadow: 0 10px 30px -8px var(--nk-a60), inset 0 1px 0 rgba(255, 255, 255, .25) !important;
+}
+button[data-testid="play-button"] { transition: transform .5s var(--nk-spring) !important; }
+button[data-testid="play-button"]:hover { transform: scale(1.07); }
+button[data-testid="play-button"] svg { fill: #fff !important; }
+
+/* ── sol kitaplık */
+#Desktop_LeftSidebar_Id [role="row"] > div,
+.main-yourLibraryX-listItem > div { border-radius: calc(var(--nk-r) * .5) !important; transition: background .25s; }
+#Desktop_LeftSidebar_Id [role="row"]:hover > div { background: rgba(255, 255, 255, .06) !important; }
+#Desktop_LeftSidebar_Id [role="row"] img { border-radius: calc(var(--nk-r) * .36) !important; }
+#Desktop_LeftSidebar_Id [aria-current="true"] > div,
+#Desktop_LeftSidebar_Id [aria-selected="true"] > div { background: var(--nk-a30) !important; }
+
+button[role="checkbox"] > span { border-radius: 999px !important; }
+button[role="checkbox"][aria-checked="true"] > span { box-shadow: 0 6px 18px -8px rgba(255, 255, 255, .5); }
+
+/* ── menüler
+   backdrop-filter / transform / filter KULLANMA: bunlar menüyü, içindeki alt menünün (ör. "Çalma listesine ekle")
+   konum çerçevesi yapıyor; alt menü üst menünün sınırında kırpılıp tıklanamaz oluyordu. */
+.main-contextMenu-menu, #context-menu ul {
+  background: rgba(26, 26, 30, .97) !important;
+  border-radius: calc(var(--nk-r) * .64) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), inset 0 0 0 1px var(--nk-rim), 0 30px 60px -20px rgba(0, 0, 0, .95) !important;
+  padding: 6px !important;
+  animation: nk-menu .22s var(--nk-ease);
+}
+@keyframes nk-menu { from { opacity: 0; } }
+.main-contextMenu-menuItemButton { border-radius: 11px !important; }
+.main-contextMenu-menuItemButton:hover { background: rgba(255, 255, 255, .08) !important; }
+
+/* ── kaydırma çubukları */
+::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .12) !important; border-radius: 99px !important; border: 3px solid transparent !important; background-clip: padding-box !important; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .24) !important; background-clip: padding-box !important; }
+::-webkit-scrollbar-track { background: transparent !important; }
+.os-scrollbar-handle { background: rgba(255, 255, 255, .14) !important; border-radius: 99px !important; }
+
+/* ── animasyonlar kapalı (Stüdyo) */
+html.nk-noanim .main-view-container__scroll-node-child > main,
+html.nk-noanim .main-contextMenu-menu,
+html.nk-noanim .nk-swap .main-nowPlayingBar-left img,
+html.nk-noanim .nk-swap .main-nowPlayingBar-left a { animation: none !important; }
+html.nk-noanim [data-encore-id="card"]:hover,
+html.nk-noanim .view-homeShortcutsGrid-shortcut:hover { transform: none; }
+
+/* zLyrics açıkken altında kalanlar eklentiden content-visibility ile gizlenir */
+
+@media (prefers-reduced-motion: reduce) {
+  #nk-ambient canvas.g { animation: none; }
+  .main-view-container__scroll-node-child > main { animation: none; }
+}

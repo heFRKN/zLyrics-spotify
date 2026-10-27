@@ -1,0 +1,10 @@
+# ki?isel / oturum verileri: ASLA y?kleme
+browser.json
+.login-profile/
+.cache/
+spicetify/round.json
+
+# derleme ??kt?lar?
+__pycache__/
+spicetify/corners/*.exe
+release/
