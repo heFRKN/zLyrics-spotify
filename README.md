@@ -4,7 +4,8 @@
 [![Lisans: MIT](https://img.shields.io/badge/lisans-MIT-990033)](LICENSE)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-222)
 
-Spotify masaüstü uygulaması için Apple Music tarzı, şarkıyla senkron, animasyonlu söz ekranı ve siyah + bordo (#990033) cam görünümlü tema.
+Şarkıyla birlikte akan, akıcı animasyonlu söz ekranı ve siyah + bordo (#990033) cam görünümlü, yumuşak köşeli bir Spotify masaüstü teması.
+Hafif çalışacak şekilde tasarlandı: arka planda neredeyse hiç kaynak harcamaz, oyun oynarken hissedilmez.
 Ayrıca YouTube Music ile çalışan bağımsız bir web sürümü var.
 
 > Windows · Spotify masaüstü (spotify.com sürümü) · [Spicetify](https://spicetify.app) üzerinde çalışır
@@ -56,7 +57,7 @@ Spotify'ın **Şarkı sözleri (mikrofon)** butonu zLyrics'i sağ panelde açar;
 | **Karaoke** | İki satır, söylenen kısım vurgu rengiyle dolar, uzun aradan önce geri sayım |
 | **Odak** | Ekranda tek satır, kelimeler söylendiği an belirir |
 
-- Sözler Spotify'dan (Musixmatch, varsa hece zamanlaması), yoksa [LRCLIB](https://lrclib.net)'den. Spotify'ın sözünü bulamadığı şarkılarda da mikrofon çalışır.
+- Sözler Spotify'dan (varsa kelime kelime zamanlamayla), yoksa [LRCLIB](https://lrclib.net)'den. Spotify'ın sözünü bulamadığı şarkılarda da mikrofon çalışır.
 - Çeviri (`T`), kapak düzeni (`C`), ritim nabzı, sıradaki şarkı kartı
 - Tam ekranda **sıradakiler** (`Q`) ve **arama** (`/`): sonuca tıkla = çal, `+` = sıraya ekle
 - Senkron kaydırma (`[` `]`), her şarkı için hatırlanır
@@ -114,7 +115,7 @@ Sürüm: `python tools/make_release.py 1.2.3` → özetleri `install.ps1`'e yaza
 - Köşe programı Spotify penceresine yuvarlak şekil verir ve Windows'un pencere gölgesini/Mica efektini kapatır (köşede saydam iz kalmasın diye).
 
 ### English (short)
-Apple Music–style synced, animated lyrics + a black/crimson glass theme for the **Spotify desktop app on Windows** (via Spicetify).
+Smooth, word-synced animated lyrics and a black/crimson glass theme with soft rounded corners for the **Spotify desktop app on Windows** (via Spicetify). Built to stay light: near-zero cost in the background.
 Install (PowerShell): `iwr -useb https://raw.githubusercontent.com/heFRKN/zLyrics-spotify/main/install.ps1 | iex`  
 Uninstall: same command with `uninstall.ps1`. No admin rights, every download is SHA-256 verified, the optional corner helper is compiled locally from source.
 Open with Spotify's lyrics (mic) button; customize with the palette button (zLyrics Studio).
