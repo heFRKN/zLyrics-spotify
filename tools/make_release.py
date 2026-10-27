@@ -37,7 +37,8 @@ block = "# <surum>\n$Version = '%s'\n$Hashes = @{\n%s\n}\n# </surum>" % (
 inst, n = re.subn(r"# <surum>.*?# </surum>", lambda _: block, inst, flags=re.S)
 if n != 1:
     sys.exit("install.ps1 içinde '# <surum>' bloğu bulunamadı")
-with open(inst_path, "w", encoding="utf-8-sig") as f:
+# depodaki kopya BOM'suz: "iwr | iex" BOM karakterini ayrıştıramaz
+with open(inst_path, "w", encoding="utf-8") as f:
     f.write(inst)
 
 out = os.path.join(ROOT, "release")
@@ -45,8 +46,12 @@ shutil.rmtree(out, ignore_errors=True)
 os.makedirs(out)
 for name, rel in FILES.items():
     shutil.copy(os.path.join(ROOT, rel), os.path.join(out, name))
+# zip'teki kopya BOM'lu: Windows PowerShell 5.1 "-File" ile Türkçe karakterleri ancak böyle doğru okur
 for name in ("install.ps1", "uninstall.ps1"):
-    shutil.copy(os.path.join(ROOT, name), os.path.join(out, name))
+    with open(os.path.join(ROOT, name), encoding="utf-8-sig") as f:
+        src = f.read()
+    with open(os.path.join(out, name), "w", encoding="utf-8-sig") as f:
+        f.write(src)
 
 zname = os.path.join(out, f"zLyrics-v{VERSION}.zip")
 with zipfile.ZipFile(zname, "w", zipfile.ZIP_DEFLATED) as z:

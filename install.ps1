@@ -1,4 +1,4 @@
-﻿# zLyrics kurulum / installer  (Windows, Spotify masaüstü / desktop)
+# zLyrics kurulum / installer  (Windows, Spotify masaüstü / desktop)
 #
 #   iwr -useb https://raw.githubusercontent.com/heFRKN/zLyrics-spotify/main/install.ps1 | iex
 #   ya da / or (sürüm zip'inden / from the release zip):  powershell -ExecutionPolicy Bypass -File install.ps1

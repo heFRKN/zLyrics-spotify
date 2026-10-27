@@ -1,4 +1,4 @@
-﻿# zLyrics kaldırma: eklentiyi, temayı ve köşe programını kaldırır. Spicetify'ın kendisine dokunmaz.
+# zLyrics kaldırma: eklentiyi, temayı ve köşe programını kaldırır. Spicetify'ın kendisine dokunmaz.
 #   Spotify'ı tamamen orijinaline döndürmek için ayrıca:  spicetify restore
 $Sp = "$env:LOCALAPPDATA\spicetify\spicetify.exe"
 
