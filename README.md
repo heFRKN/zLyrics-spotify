@@ -13,35 +13,46 @@ Hafif çalışacak şekilde tasarlandı: arka planda neredeyse hiç kaynak harca
 
 ## Kurulum
 
-PowerShell'i açıp yapıştırın:
+> Gerekenler: Windows 10/11 ve [spotify.com](https://www.spotify.com/download)'dan kurulmuş Spotify (Microsoft Store sürümü desteklenmez).
+
+### Yol 1: Tek komut (önerilen)
+
+1. Başlat menüsüne **PowerShell** yazıp açın.
+2. Aşağıdaki satırı kopyalayıp yapıştırın, **Enter**'a basın.
 
 ```powershell
 iwr -useb https://raw.githubusercontent.com/heFRKN/zLyrics-spotify/main/install.ps1 | iex
 ```
 
-Betik sırasıyla:
-1. Spotify'ın **spotify.com** sürümünün kurulu olduğunu kontrol eder (Microsoft Store sürümü desteklenmez: [buradan](https://www.spotify.com/download) indirin).
-2. Spicetify yoksa kurar.
+3. Köşe programını sorarsa `e` (evet) ya da `h` (hayır) yazın. Spotify yeniden açılınca hazır.
+
+### Yol 2: İndir, çift tıkla
+
+1. [Son sürümden](https://github.com/heFRKN/zLyrics-spotify/releases/latest) `zLyrics-vX.Y.Z.zip` dosyasını indirin ve bir klasöre çıkarın.
+2. **`install.cmd`**'ye çift tıklayın. (Windows "bilinmeyen yayıncı" uyarısı verirse **Çalıştır**'a basın.)
+
+### Kurulum ne yapar?
+1. Spotify kurulu mu bakar; hiç açılmamışsa bir kez açar.
+2. [Spicetify](https://spicetify.app) yoksa resmi sürümünü kurar.
 3. zLyrics eklentisini ve temasını kurup uygular (Spotify bir kez yeniden başlar).
-4. İsterseniz pencere köşelerini yuvarlatan küçük programı kurar (sorar).
+4. İsterseniz pencere köşelerini yuvarlatan küçük programı kurar.
 
-Komut satırı istemiyorsanız: [son sürümden](https://github.com/heFRKN/zLyrics-spotify/releases/latest) `zLyrics-vX.Y.Z.zip` dosyasını indirip açın, klasörde `install.ps1`'e sağ tıklayıp **PowerShell ile çalıştır** deyin.
+### Spotify güncellendi, tema gitti?
+Spotify kendini güncelleyince tema kapanabilir. **Aynı kurulum komutunu tekrar çalıştırın** (ya da `install.cmd`), hepsi bu.
 
-**Kaldırma:**
+### Kaldırma
 
 ```powershell
 iwr -useb https://raw.githubusercontent.com/heFRKN/zLyrics-spotify/main/uninstall.ps1 | iex
 ```
-Spotify'ı tamamen orijinaline döndürmek için ayrıca: `spicetify restore`
-
-**Spotify güncellendikten sonra tema kaybolursa:** `spicetify backup apply` (olmazsa `spicetify restore backup apply`)
+ya da zip'teki `uninstall.cmd`. Spotify'ı tamamen orijinaline döndürmek için ayrıca: `spicetify restore`
 
 ### Güvenlik
 - Yönetici izni istemez; yalnızca kendi kullanıcı klasörünüze (`%APPDATA%\spicetify`, `%LOCALAPPDATA%\zlyrics`) yazar.
 - İndirilen her zLyrics dosyası, betiğe gömülü **SHA-256** özetleriyle doğrulanır; tutmazsa kurulum durur. Spicetify, kendi resmi GitHub sürümünden indirilir.
 - Hazır `.exe` dağıtılmaz: köşe programı bilgisayarınızda, Windows'un kendi derleyicisiyle, [açık kaynak koddan](spicetify/corners/ZLyricsCorners.cs) derlenir.
 - Hiçbir yere veri göndermez, hesap bilgisi istemez. Sözler yalnızca Spotify'ın kendisinden ve [LRCLIB](https://lrclib.net)'den alınır.
-- Çalıştırmadan önce okumak isterseniz: [install.ps1](install.ps1) (~120 satır).
+- Çalıştırmadan önce okumak isterseniz: [install.ps1](install.ps1) (~140 satır).
 
 ---
 
@@ -104,5 +115,5 @@ Sürüm: `python tools/make_release.py 1.2.3` → özetleri `install.ps1`'e yaza
 ### English (short)
 Smooth, word-synced animated lyrics and a black/crimson glass theme with soft rounded corners for the **Spotify desktop app on Windows** (via Spicetify). Built to stay light: near-zero cost in the background.
 Install (PowerShell): `iwr -useb https://raw.githubusercontent.com/heFRKN/zLyrics-spotify/main/install.ps1 | iex`  
-Uninstall: same command with `uninstall.ps1`. No admin rights, every download is SHA-256 verified, the optional corner helper is compiled locally from source.
+Or download the release zip and double-click `install.cmd`. If a Spotify update removes the theme, just run the installer again. Uninstall: same command with `uninstall.ps1`. No admin rights, every download is SHA-256 verified, the optional corner helper is compiled locally from source.
 Open with Spotify's lyrics (mic) button; customize with the palette button (zLyrics Studio).

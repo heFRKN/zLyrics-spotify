@@ -57,6 +57,8 @@ zname = os.path.join(out, f"zLyrics-v{VERSION}.zip")
 with zipfile.ZipFile(zname, "w", zipfile.ZIP_DEFLATED) as z:
     for name in list(FILES) + ["install.ps1", "uninstall.ps1"]:
         z.write(os.path.join(out, name), f"zLyrics-v{VERSION}/{name}")
+    for name in ("install.cmd", "uninstall.cmd"):   # çift tıklayarak kurulum
+        z.write(os.path.join(ROOT, name), f"zLyrics-v{VERSION}/{name}")
     z.write(os.path.join(ROOT, "LICENSE"), f"zLyrics-v{VERSION}/LICENSE")
 
 with open(os.path.join(out, "SHA256SUMS.txt"), "w", encoding="utf-8") as f:

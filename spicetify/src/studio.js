@@ -52,7 +52,7 @@ const NK_FONTS = {
   spotify: 'SpotifyMixUI, "Helvetica Neue", Arial, sans-serif',
 };
 const NK_PALETTE = '<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 1 0 0 13c.9 0 1.4-.6 1.4-1.3 0-.4-.2-.7-.4-1-.2-.3-.4-.6-.4-1 0-.7.6-1.3 1.3-1.3h1.5A3.1 3.1 0 0 0 14.5 6.8C14.5 3.8 11.6 1.5 8 1.5ZM4.3 8.4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1.9-2.8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm3.6 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm2 2.8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>';
-const NK_WIN_PORT = 47391; // round.ps1 izleyicisi bu porttan pencere yarıçapını alır
+const NK_WIN_PORT = 47391; // köşe programı (ZLyricsCorners) bu porttan pencere yarıçapını alır
 
 function nkHex2Hsl(hex) {
   const n = parseInt(hex.replace('#', ''), 16);
