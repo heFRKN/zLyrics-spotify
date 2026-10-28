@@ -103,3 +103,12 @@ spicetify/corners/  pencere köşeleri
 <div align="center">
 <sub>MIT Lisansı · heFRKN</sub>
 </div>
+
+---
+
+## Destek · Support
+
+zLyrics ücretsiz ve açık kaynak. İşine yaradıysa destek olabilirsin.<br>
+<sub>zLyrics is free and open source. If it helped you, you can support its development.</sub>
+
+[![Kreosus](https://img.shields.io/badge/Kreosus-furkantiril-990033?style=flat-square)](https://kreosus.com/furkantiril)
