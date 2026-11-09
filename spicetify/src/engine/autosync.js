@@ -48,46 +48,33 @@ function vocalProb(segs) {
   });
 }
 
-function nearest(arr, t, tol) {
-  let lo = 0, hi = arr.length - 1;
-  while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] < t) lo = m + 1; else hi = m; }
-  let best = t, bd = tol;
-  for (const k of [lo - 1, lo]) {
-    const v = arr[k];
-    if (v != null && Math.abs(v - t) < bd) { bd = Math.abs(v - t); best = v; }
-  }
-  return best;
-}
-
 export function autoSync(plain, a, duration) {
   const lines = plainLines(plain);
   const segs = a?.segments;
   const dur = duration || a?.track?.duration || 0;
   if (!lines.length || !segs?.length || !dur) return null;
 
-  // vokal yoğunluğu: 50 ms karelere yay, keskinleştir (p^4), 0.5 sn yumuşat
-  const DT = 0.05, n = Math.ceil(dur / DT) + 1;
-  const v = new Float32Array(n);
-  vocalProb(segs).forEach((p, i) => {
-    const s = segs[i];
-    const q = p ** 4;
-    for (let k = Math.floor(s.start / DT), e = Math.min(n, Math.floor((s.start + s.duration) / DT) + 1); k < e; k++) if (q > v[k]) v[k] = q;
-  });
-  const R = 10, Pv = new Float64Array(n + 1), C = new Float64Array(n);
-  for (let k = 0; k < n; k++) Pv[k + 1] = Pv[k] + v[k];
-  for (let k = 0; k < n; k++) C[k] = (k ? C[k - 1] : 0) + (Pv[Math.min(n, k + R + 1)] - Pv[Math.max(0, k - R)]) / (2 * R + 1);
-  const tot = C[n - 1] || 1;
+  // Vokal olasılığıyla ağırlıklı segment sayımı: sözlü kısımlarda segmentler kabaca heceleri izler,
+  // böylece hızlı/yavaş akış yerel olarak yakalanır (52 şarkıda zamana göre yerleştirmeden daha iyi).
+  const p = vocalProb(segs);
+  const C = new Float64Array(segs.length + 1);
+  for (let i = 0; i < segs.length; i++) C[i + 1] = C[i] + p[i] ** 4;
+  const tot = C[segs.length] || 1;
+  const edge = (i) => (i < segs.length ? segs[i].start : segs[segs.length - 1].start + segs[segs.length - 1].duration);
+  const at = (f) => {
+    const x = f * tot;
+    let lo = 0, hi = segs.length;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (C[m + 1] < x) lo = m + 1; else hi = m; }
+    const a0 = C[lo], a1 = C[lo + 1] ?? a0;
+    return edge(lo) + (a1 > a0 ? (x - a0) / (a1 - a0) : 0) * (edge(lo + 1) - edge(lo));
+  };
 
-  const beats = (a.beats || []).map((b) => b.start);
-  const w = lines.map((l) => syllables(l) + 1.5);
+  const w = lines.map((l) => syllables(l) + 3);
   const W = w.reduce((x, y) => x + y, 0);
   const out = [];
-  let acc = 0, k = 0, prev = -1;
+  let acc = 0, prev = -1;
   lines.forEach((text, i) => {
-    const target = (acc / W) * tot;
-    while (k < n - 1 && C[k] < target) k++;
-    let t = k * DT;
-    if (beats.length) t = nearest(beats, t, 0.25);
+    let t = at(acc / W + 1e-6);
     if (t <= prev) t = prev + 0.3;
     out.push({ t, text });
     prev = t;

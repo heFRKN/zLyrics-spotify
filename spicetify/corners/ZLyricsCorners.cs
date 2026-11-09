@@ -8,7 +8,8 @@
 //  - pencereye yuvarlatılmış bölge (SetWindowRgn), boyut değişince yenilenir
 //  - Windows'un kendi köşesi, kenar çizgisi, çerçeve çizimi ve Mica dolgusu kapatılır (köşede saydam kare kalmasın)
 //  - Chromium'un gölge için yaptığı çerçeve genişletmesi sıfırlanır
-//  - tam ekran / maximize olunca hepsi Windows varsayılanına döner
+//  - tam ekran / maximize olunca bölge kalkar, köşe Windows varsayılanına döner (kenar çizgisi kapalı kalır)
+//  - ana pencere: Spotify'ın görünür en büyük penceresi (küçük yardımcı pencerelere takılmaz)
 //  - 127.0.0.1:47391/radius?v=N -> yarıçap (zLyrics Stüdyo'daki kaydırıcı)
 //
 // Derleme: csc /target:winexe /out:zlyrics-koseler.exe ZLyricsCorners.cs
@@ -44,6 +45,10 @@ static class ZLyricsCorners
     [DllImport("user32")] static extern bool IsZoomed(IntPtr h);
     [DllImport("user32")] static extern bool IsIconic(IntPtr h);
     [DllImport("user32")] static extern bool IsWindow(IntPtr h);
+    [DllImport("user32")] static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+    delegate bool EnumProc(IntPtr h, IntPtr l);
+    [DllImport("user32")] static extern bool EnumWindows(EnumProc f, IntPtr l);
     [DllImport("user32")] static extern int SetWindowRgn(IntPtr h, IntPtr rgn, bool redraw);
     [DllImport("user32")] static extern int GetWindowRgn(IntPtr h, IntPtr rgn);
     [DllImport("user32")] static extern uint GetDpiForWindow(IntPtr h);
@@ -105,32 +110,47 @@ static class ZLyricsCorners
         return 36;
     }
 
-    // Spotify'ın ana penceresini bul; süreç değiştiyse olay kancasını yeni sürece bağla
+    // Ana pencere: Spotify'ın görünür en büyük üst düzey penceresi. Spotify'ın küçük yardımcı
+    // pencereleri de var (tam ekrandan sonra öne çıkabiliyor); onlara takılınca köşeler geri gelmiyordu.
+    static bool IsMain(IntPtr h)
+    {
+        if (h == IntPtr.Zero || !IsWindow(h)) return false;
+        if (IsIconic(h)) return true; // simge durumundaki ana pencere
+        RECT r;
+        return IsWindowVisible(h) && GetWindowRect(h, out r) && r.R - r.L >= 400 && r.B - r.T >= 300;
+    }
+
     static void Rescan()
     {
         try
         {
-            if (win != IntPtr.Zero && IsWindow(win)) return;
-            foreach (var p in Process.GetProcessesByName("Spotify"))
+            if (IsMain(win)) return;
+            var pids = new System.Collections.Generic.HashSet<uint>();
+            foreach (var p in Process.GetProcessesByName("Spotify")) using (p) pids.Add((uint)p.Id);
+            IntPtr best = IntPtr.Zero; long bestArea = 0; uint bestPid = 0;
+            EnumWindows((h, l) =>
             {
-                using (p)
-                {
-                    if (p.MainWindowHandle == IntPtr.Zero) continue;
-                    win = p.MainWindowHandle;
-                    lastSig = "";
-                    if (hookedPid != (uint)p.Id)
-                    {
-                        if (hook1 != IntPtr.Zero) UnhookWinEvent(hook1);
-                        if (hook2 != IntPtr.Zero) UnhookWinEvent(hook2);
-                        hook1 = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_MINIMIZEEND, IntPtr.Zero, Proc, (uint)p.Id, 0, WINEVENT_OUTOFCONTEXT);
-                        hook2 = SetWinEventHook(EVENT_OBJECT_SHOW, EVENT_OBJECT_LOCATIONCHANGE, IntPtr.Zero, Proc, (uint)p.Id, 0, WINEVENT_OUTOFCONTEXT);
-                        hookedPid = (uint)p.Id;
-                    }
-                    Apply(true);
-                    return;
-                }
+                uint pid;
+                GetWindowThreadProcessId(h, out pid);
+                if (!pids.Contains(pid) || !IsWindowVisible(h)) return true;
+                RECT r;
+                if (!GetWindowRect(h, out r)) return true;
+                long a = (long)(r.R - r.L) * (r.B - r.T);
+                if (r.R - r.L >= 400 && r.B - r.T >= 300 && a > bestArea) { best = h; bestArea = a; bestPid = pid; }
+                return true;
+            }, IntPtr.Zero);
+            win = best;
+            if (best == IntPtr.Zero) return;
+            lastSig = "";
+            if (hookedPid != bestPid)
+            {
+                if (hook1 != IntPtr.Zero) UnhookWinEvent(hook1);
+                if (hook2 != IntPtr.Zero) UnhookWinEvent(hook2);
+                hook1 = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_MINIMIZEEND, IntPtr.Zero, Proc, bestPid, 0, WINEVENT_OUTOFCONTEXT);
+                hook2 = SetWinEventHook(EVENT_OBJECT_SHOW, EVENT_OBJECT_LOCATIONCHANGE, IntPtr.Zero, Proc, bestPid, 0, WINEVENT_OUTOFCONTEXT);
+                hookedPid = bestPid;
             }
-            win = IntPtr.Zero;
+            Apply(true);
         }
         catch { }
     }
@@ -138,7 +158,7 @@ static class ZLyricsCorners
     static void OnWinEvent(IntPtr hook, uint ev, IntPtr hwnd, int idObject, int idChild, uint thread, uint time)
     {
         if (idObject != 0) return; // yalnızca pencerenin kendisi (imleç vb. değil)
-        if (win == IntPtr.Zero || !IsWindow(win)) { win = IntPtr.Zero; Rescan(); return; }
+        if (!IsMain(win)) { win = IntPtr.Zero; Rescan(); return; }
         if (hwnd != win) return;
         // öne gelince Chromium Mica / çerçeveyi geri açabiliyor: tam kontrol; taşıma/boyutta yalnızca boyut değiştiyse
         Apply(ev == EVENT_SYSTEM_FOREGROUND || ev == EVENT_SYSTEM_MINIMIZEEND || ev == EVENT_OBJECT_SHOW);
@@ -158,7 +178,8 @@ static class ZLyricsCorners
         if (GetMonitorInfo(MonitorFromWindow(h, 2), ref mi))
         {
             var mon = mi.rcMonitor;
-            if (rc.L <= mon.L && rc.T <= mon.T && rc.R >= mon.R && rc.B >= mon.B) zoom = true; // gerçek tam ekran
+            // tam ekran: Spotify pencereyi ekrandan 1 px kısa yapıyor (2560x1439), birkaç piksel pay
+            if (rc.L <= mon.L + 2 && rc.T <= mon.T + 2 && rc.R >= mon.R - 2 && rc.B >= mon.B - 2) zoom = true;
         }
         bool want = !zoom && radius > 8;
         string sig = w + "x" + hh + (zoom ? "z" : "") + radius;
@@ -181,11 +202,13 @@ static class ZLyricsCorners
 
         if (!want)
         {
-            Set(h, DWMWA_CORNER, 2); Set(h, DWMWA_BORDER, -1); Set(h, DWMWA_NCRENDERING_POLICY, 0); Set(h, DWMWA_BACKDROP, 2);
+            // kenar çizgisi kapalı kalır: tam ekranda Windows'un gri çerçevesi ekranın dört kenarında görünüyordu
+            Set(h, DWMWA_CORNER, 2); Set(h, DWMWA_BORDER, -2); Set(h, DWMWA_NCRENDERING_POLICY, 0); Set(h, DWMWA_BACKDROP, 2);
             SetWindowRgn(h, IntPtr.Zero, true);
             return;
         }
-        Set(h, DWMWA_CORNER, 1); Set(h, DWMWA_BORDER, -2); Set(h, DWMWA_NCRENDERING_POLICY, 2); Set(h, DWMWA_BACKDROP, 1);
+        // çerçeve çizimi KAPALI (1): açık (2) olunca Chromium bölgeyi anında siliyordu (özellikle tam ekrandan sonra)
+        Set(h, DWMWA_CORNER, 1); Set(h, DWMWA_BORDER, -2); Set(h, DWMWA_NCRENDERING_POLICY, 1); Set(h, DWMWA_BACKDROP, 1);
         var z = new MARGINS();
         DwmExtendFrameIntoClientArea(h, ref z);
         uint dpi = GetDpiForWindow(h);

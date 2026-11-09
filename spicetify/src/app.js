@@ -89,7 +89,7 @@ function nkMain() {
       <div class="nk-layer words" data-l="words"></div>
       <div class="nk-layer typer" data-l="typer"></div>
       <div class="nk-layer nk-plain" data-l="plain"></div>
-      <div class="nk-layer nk-empty" data-l="empty"><img alt=""><p></p></div>
+      <div class="nk-layer nk-empty" data-l="empty"><img alt=""><p></p><div class="nk-addly"><button class="nk-btn on" data-a="addLyrics">Sözleri ekle</button><button class="nk-btn" data-a="webLyrics">Webde ara</button></div></div>
       <div class="nk-loader"><i></i><i></i><i></i></div>
     </div>
     <div class="nk-dock nk-glass nk-chrome only-full">
@@ -119,6 +119,12 @@ function nkMain() {
       <button class="nk-more" data-a="studio">Yazı, renk, arka plan… <b>Stüdyo'da aç</b></button>
       <p class="nk-keys"><kbd>1</kbd>–<kbd>6</kbd> mod · <kbd>T</kbd> çeviri · <kbd>C</kbd> kapak · <kbd>F</kbd> tam ekran · <kbd>[</kbd><kbd>]</kbd> senkron · <kbd>Esc</kbd></p>
       <p class="nk-src"></p>
+    </div>
+    <div class="nk-editor nk-glass">
+      <b>Sözleri ekle</b><span class="nk-ed-for"></span>
+      <textarea spellcheck="false" placeholder="Sözleri buraya yapıştır…"></textarea>
+      <small>Zamanlı metin ([00:12.34] satır) olduğu gibi kullanılır. Zamansızsa şarkıya göre kendiliğinden hizalanır; kayan satıra Akış'ta tıklayarak düzeltirsin.</small>
+      <div><button class="nk-btn" data-a="edCancel">Vazgeç</button><button class="nk-btn on" data-a="edSave">Kaydet</button></div>
     </div>
     <div class="nk-toast nk-glass"></div>`;
   document.body.append(root);
@@ -336,6 +342,58 @@ function nkMain() {
     return null;
   }
 
+  // Son çare: açık söz arşivi (zamansız metin; ardından tahmini senkronla hizalanır).
+  // Sanatçı/ad varyasyonları paralel denenir, ilk dolu sonuç alınır.
+  async function openLyrics(m) {
+    const artists = m.artist.split(',').map((a) => a.trim()).filter(Boolean).slice(0, 3);
+    const title = cleanTitle(m.title);
+    const tries = artists.map((a) => [a, title]);
+    if (title !== m.title && artists[0]) tries.push([artists[0], m.title]);
+    if (!tries.length) return null;
+    const get = async ([a, t]) => {
+      const ac = new AbortController();
+      const to = setTimeout(() => ac.abort(), 9000);
+      try {
+        const r = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(a)}/${encodeURIComponent(t)}`, { signal: ac.signal });
+        return r.ok ? (await r.json())?.lyrics || null : null;
+      } catch { return null; } finally { clearTimeout(to); }
+    };
+    const text = await new Promise((done) => {
+      let left = tries.length;
+      tries.forEach((x) => get(x).then((v) => { if (v && v.trim()) done(v); else if (!--left) done(null); }));
+    });
+    if (!text) return null;
+    const plain = text.replace(/\r/g, '').replace(/^Paroles de la chanson[^\n]*\n/i, '').replace(/\n{2,}/g, '\n').trim();
+    return plain ? { synced: false, plain, source: 'lyrics.ovh' } : null;
+  }
+
+  /* ───────────── kendi eklediğin sözler (hiçbir kaynakta yoksa) */
+  S.mine = store.get('mylyrics', {});
+  function openEditor() {
+    const m = S.meta;
+    if (!m) return;
+    const ed = q('.nk-editor');
+    q('.nk-ed-for').textContent = `${m.title} · ${m.artist}`;
+    ed.querySelector('textarea').value = S.mine[m.uri] || '';
+    ed.classList.add('open');
+    setTimeout(() => ed.querySelector('textarea').focus(), 50);
+  }
+  function saveMine(text) {
+    const m = S.meta;
+    if (!m) return;
+    text = (text || '').replace(/\r/g, '').trim();
+    if (text) S.mine[m.uri] = text; else delete S.mine[m.uri];
+    const keys = Object.keys(S.mine);
+    if (keys.length > 300) delete S.mine[keys[0]];
+    store.set('mylyrics', S.mine);
+    delete S.anchors[m.uri];
+    store.set('anchors', S.anchors);
+    S.cache.delete(m.uri);
+    q('.nk-editor').classList.remove('open');
+    loadLyrics(m);
+    toast(text ? 'Sözler kaydedildi' : 'Eklediğin sözler kaldırıldı');
+  }
+
   /* ───────────── tahmini senkron (zamanı olmayan sözler) */
   S.anchors = store.get('anchors', {});
   async function estimate(m, plain) {
@@ -355,9 +413,15 @@ function nkMain() {
     const n = res?.estimated ? Object.keys(S.anchors[S.uri] || {}).length : 0;
     const p = q('.nk-src');
     p.textContent = res?.source ? `Sözler: ${res.source}` : '';
+    if (res?.mine) {
+      const e = el('button', 'nk-unanchor', 'düzenle'); e.onclick = openEditor;
+      const d = el('button', 'nk-unanchor', 'kaldır'); d.onclick = () => saveMine('');
+      p.append(' · ', e, ' · ', d);
+    }
     if (res?.estimated) {
       p.append(` · tahmini senkron${n ? ` (${n} satır hizalı)` : ''} — Akış'ta duyduğun satıra tıkla `);
       if (n) { const b = el('button', 'nk-unanchor', 'sıfırla'); b.onclick = () => clearAnchors(); p.append(b); }
+      const t = el('button', 'nk-unanchor', 'dokunarak senkronla'); t.onclick = () => tapStart(); p.append(' · ', t);
     }
   }
   function anchorLine(i) {
@@ -375,6 +439,78 @@ function nkMain() {
     srcLabel();
     toast('Satır hizalandı · sonrakiler ona göre kaydı');
   }
+  /* Dokunarak senkron: şarkıyı dinlerken her satır başladığında Boşluk'a (ya da karta) basılır.
+     Her basış o satırı sabitler; bir dinleyişte şarkı tam senkron olur ve kalıcı saklanır. */
+  const tap = { on: false, i: 0 };
+  const tapEl = el('div', 'nk-tap nk-glass');
+  tapEl.innerHTML = '<small></small><b></b><span></span><p>Satır başladığı an <kbd>Boşluk</kbd> ya da karta tıkla · <kbd>←</kbd> geri al · <kbd>Esc</kbd> bitir</p>';
+  root.append(tapEl);
+  function tapShow() {
+    const res = S.cache.get(S.meta?.uri), L = res?.est || [];
+    tapEl.querySelector('small').textContent = `Dokunarak senkron · ${Math.min(tap.i + 1, L.length)}/${L.length}`;
+    tapEl.querySelector('b').textContent = L[tap.i]?.text || '';
+    tapEl.querySelector('span').textContent = L[tap.i + 1]?.text || '';
+  }
+  function tapStart() {
+    const m = S.meta, res = S.cache.get(m?.uri);
+    if (!res?.est?.length) return;
+    tap.on = true;
+    tap.i = 0;
+    delete S.anchors[m.uri];
+    store.set('anchors', S.anchors);
+    S.prep = prepare(estLines(m, res), m.duration);
+    remount();
+    q('.nk-panel').classList.remove('open');
+    tapEl.classList.add('open');
+    tapShow();
+    seek(0);
+    if (!playing()) P.play();
+  }
+  function tapEnd(msg) {
+    if (!tap.on) return;
+    tap.on = false;
+    tapEl.classList.remove('open');
+    srcLabel();
+    if (msg) toast(msg);
+  }
+  function tapHit() {
+    const m = S.meta, res = S.cache.get(m?.uri);
+    if (!tap.on || !res?.est) return;
+    // basış tepkisi ~0.15 sn geç kalır
+    const now = (safe(() => P.getProgress(), 0) || 0) / 1000 - 0.15 - offset();
+    S.anchors[m.uri] = { ...(S.anchors[m.uri] || {}), [tap.i]: +Math.max(0, now).toFixed(2) };
+    store.set('anchors', S.anchors);
+    tap.i++;
+    S.prep = prepare(estLines(m, res), m.duration);
+    remount();
+    if (tap.i >= res.est.length) return tapEnd('Senkron tamam · bu şarkı için kaydedildi');
+    tapShow();
+  }
+  function tapUndo() {
+    const m = S.meta, res = S.cache.get(m?.uri);
+    if (!tap.on || !tap.i) return;
+    tap.i--;
+    const a = { ...(S.anchors[m.uri] || {}) };
+    const back = a[tap.i];
+    delete a[tap.i];
+    S.anchors[m.uri] = a;
+    store.set('anchors', S.anchors);
+    S.prep = prepare(estLines(m, res), m.duration);
+    remount();
+    if (back != null) seek(Math.max(0, back - 3));
+    tapShow();
+  }
+  tapEl.addEventListener('click', tapHit);
+  window.addEventListener('keydown', (e) => {
+    if (!tap.on || e.ctrlKey || e.metaKey || e.altKey || e.target.matches?.('input, textarea, [contenteditable]')) return;
+    const f = { ' ': tapHit, Enter: tapHit, ArrowDown: tapHit, ArrowLeft: tapUndo, Backspace: tapUndo, Escape: () => tapEnd('Senkron kaydedildi') }[e.key];
+    if (!f) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (!e.repeat) f();
+  }, true);
+  P.addEventListener('songchange', () => tapEnd());
+
   function clearAnchors() {
     const m = S.meta, res = S.cache.get(m?.uri);
     delete S.anchors[m.uri];
@@ -390,9 +526,17 @@ function nkMain() {
     root.classList.add('loading');
     showLayer();
     let res = S.cache.get(m.uri);
+    const mine = S.mine[m.uri];
+    if (!res && mine) {
+      res = /\[\d+:\d+/.test(mine) ? { synced: true, lines: parseLrc(mine), source: 'senin eklediğin' } : { synced: false, plain: mine, source: 'senin eklediğin' };
+      if (res.synced && !res.lines.length) res = { synced: false, plain: mine, source: 'senin eklediğin' };
+      res.mine = true;
+      S.cache.set(m.uri, res);
+    }
     if (!res) {
       res = await spotifyLyrics(m).catch(() => null);
       if (!res?.synced) res = (await lrclib(m).catch(() => null)) || res;
+      if (!res?.synced && !res?.plain && !res?.instrumental) res = (await openLyrics(m).catch(() => null)) || res;
       res = res || { synced: false };
       S.cache.set(m.uri, res);
       if (S.cache.size > 40) S.cache.delete(S.cache.keys().next().value); // bellek: en eski 40'ı tut
@@ -962,6 +1106,10 @@ function nkMain() {
     coverToggle: () => { SW.cover(!S.cover); syncSwitches(); },
     settings: () => q('.nk-panel').classList.toggle('open'),
     studio: () => { q('.nk-panel').classList.remove('open'); studio.open('sozler'); },
+    addLyrics: openEditor,
+    webLyrics: () => S.meta && window.open('https://www.google.com/search?q=' + encodeURIComponent(`${cleanTitle(S.meta.title)} ${S.meta.artist.split(',')[0]} şarkı sözleri`), '_blank'),
+    edCancel: () => q('.nk-editor').classList.remove('open'),
+    edSave: () => saveMine(q('.nk-editor textarea').value),
     fs: () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {}),
   };
   root.addEventListener('click', (e) => {
