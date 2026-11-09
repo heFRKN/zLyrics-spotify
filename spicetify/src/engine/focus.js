@@ -21,12 +21,26 @@ export class Focus {
 
   show() {}
 
+  // ara noktaları her karede nefes alır; satırdayken geçişler CSS'te, döngü yavaşlayabilir
+  busy() { return this.cur?.it.kind === 'gap'; }
+
   // çeviri gelince mevcut satır çeviriyle yeniden kurulsun
   annotate() { this.cur?.node.remove(); this.cur = null; this.idx = -2; }
 
   _swap(idx) {
     if (this.cur) {
       const old = this.cur.node;
+      // çıkarken bulanıklaşma: net satır söner, üstündeki önceden bulanık kopyası belirir
+      const lb = old.querySelector('.fo-lb');
+      if (lb) {
+        // saydamlık dış kabukta, bulanıklık içte (aynı elementte ikisi ekran kartına verilemiyor)
+        const z = el('div', 'fo-lz');
+        const c = lb.cloneNode(true);
+        c.className = 'fo-lzb';
+        z.append(c);
+        old.append(z);
+      }
+      void old.offsetWidth;
       old.classList.add('out');
       setTimeout(() => old.remove(), 1000);
     }
@@ -42,17 +56,26 @@ export class Focus {
       return;
     }
     const node = el('div', 'fo-line');
+    const blur = el('div', 'fo-lb'); // satır çıkarken bulanıklık bu iç katmanda (yukarıdaki notla aynı neden)
+    node.append(blur);
     const inner = el('span');
     if (it.text.length > 70) inner.style.fontSize = '.62em';
     else if (it.text.length > 42) inner.style.fontSize = '.78em';
+    // Bulanıklık hiç canlandırılmaz: tarayıcı blur geçişini ekran kartına veremiyor ve her karede
+    // (180 Hz) tüm sayfayı yeniden katmanlıyordu (Odak açıkken Spotify ~1.3 çekirdek). Onun yerine
+    // kelimenin sabit bulanık kopyası net hâlinin üstünde söner; yalnızca saydamlık canlanır, görüntü aynı.
     const words = it.words.map((w, k) => {
-      const s = el('span', 'fo-w', w.text);
+      const s = el('span', 'fo-w');
+      const z = el('span', 'fo-z');
+      z.setAttribute('aria-hidden', 'true');
+      z.append(el('span', null, w.text));
+      s.append(el('span', 'fo-b', w.text), z);
       if (k) inner.append(' ');
       inner.append(s);
       return s;
     });
-    node.append(inner);
-    if (it.tr) node.append(el('div', 'fo-tr', it.tr));
+    blur.append(inner);
+    if (it.tr) blur.append(el('div', 'fo-tr', it.tr));
     this.host.append(node);
     this.cur = { node, it, words, state: words.map(() => 0) };
   }

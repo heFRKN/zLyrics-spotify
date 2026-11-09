@@ -26,10 +26,18 @@ const NK_DEFAULTS = {
   lbg: 'art',         // art | color | black
   lshade: 30,         // arka plan karartma %
   kfill: 'accent',    // karaoke dolum: accent | white
+  lcase: 'none',      // none | upper
+  lspace: 0,          // harf aralığı (em/100, eklenir)
+  lhi: 'white',       // Akış/Odak'ta söylenen kelimenin rengi: white | accent
+  autosync: true,     // zamanı olmayan sözlerde tahmini senkron
   mic: 'side',        // mikrofon: side | full
   // hareket
   motion: true,       // arka plan hareketi
   anim: true,         // sayfa / kart animasyonları
+  lspeed: 100,        // söz animasyon hızı %
+  lspring: 'soft',    // kelime girişinde esneme: none | soft | bouncy
+  lfill: 'sweep',     // kelime dolumu: sweep (akarak) | word (kelime kelime)
+  fps: 'bal',         // söz döngüsü: eco (30) | bal (60) | max (ekran hızı)
   original: false,    // Spotify'ın kendi görünümü
 };
 const NK_SWATCHES = [
@@ -45,6 +53,9 @@ const NK_THEMES = [
   { name: 'Kehribar', c: ['#d97706', '#2b1700'], set: { accent: '#d97706', glow: 75, panel: 55, art: false, lbg: 'color', lshade: 30, rim: 55 } },
   { name: 'Mono', c: ['#e5e5e5', '#111111'], set: { accent: '#d4d4d4', glow: 25, panel: 75, art: false, lbg: 'black', lshade: 50, rim: 40, kfill: 'white' } },
 ];
+const NK_SPRING = { none: 'cubic-bezier(.22, 1, .36, 1)', soft: 'cubic-bezier(.34, 1.5, .64, 1)', bouncy: 'cubic-bezier(.3, 2.1, .55, 1)' };
+// kayıtlı ayarlara girmeyenler (pencere/sürüm bilgisi)
+const NK_NOSAVE = ['original', 'v'];
 const NK_FONTS = {
   geist: '"Geist", ui-sans-serif, system-ui, sans-serif',
   inter: '"Inter Tight", ui-sans-serif, system-ui, sans-serif',
@@ -99,6 +110,11 @@ function nkStudio({ root, amb }) {
           <div class="st-themes">${NK_THEMES.map((t, i) => `<button data-theme="${i}" style="--a:${t.c[0]};--b:${t.c[1]}"><i></i><span>${t.name}</span></button>`).join('')}</div>
         </section>
         <section>
+          <h4>Ayarlarım</h4>
+          <div class="st-presets"></div>
+          <div class="st-save"><input type="text" maxlength="24" placeholder="Bu görünüme bir ad ver"><button class="st-btn" data-save>Kaydet</button></div>
+        </section>
+        <section>
           <h4>Vurgu rengi</h4>
           <div class="st-sw">${NK_SWATCHES.map(([n, c]) => `<button data-c="${c}" title="${n}" style="--c:${c}"></button>`).join('')}<label class="st-custom" title="Özel renk"><input type="color"><span>+</span></label></div>
           ${toggleRow('follow', 'Kapak rengine uy')}
@@ -130,6 +146,12 @@ function nkStudio({ root, amb }) {
           ${range('lsize', 'Boyut', 70, 140)}
           ${range('lweight', 'Kalınlık', 400, 900, '', 50)}
           ${range('lgap', 'Satır aralığı', 10, 80, '')}
+          ${range('lspace', 'Harf aralığı', -6, 16, '')}
+          ${seg('lcase', 'Harfler', [['none', 'Normal'], ['upper', 'BÜYÜK']])}
+        </section>
+        <section>
+          <h4>Renk</h4>
+          ${seg('lhi', 'Söylenen kelime', [['white', 'Beyaz'], ['accent', 'Vurgu']])}
         </section>
         <section>
           <h4>Satırlar</h4>
@@ -140,8 +162,14 @@ function nkStudio({ root, amb }) {
           ${seg('kfill', 'Karaoke dolumu', [['accent', 'Vurgu'], ['white', 'Beyaz']])}
         </section>
         <section>
+          <h4>Senkronu olmayan sözler</h4>
+          ${toggleRow('autosync', 'Tahmini senkron')}
+          <p class="st-note">Zamanı olmayan sözler şarkının ses analizine göre yerleştirilir. Kaydıysa Akış'ta o an duyduğun satıra tıkla: satır o ana sabitlenir, sonrakiler ona göre kayar ve şarkı için hatırlanır.</p>
+        </section>
+        <section>
           <h4>Arka plan</h4>
-          ${seg('lbg', 'Tür', [['art', 'Kapak'], ['color', 'Renkli'], ['black', 'Sade']])}
+          ${seg('lbg', 'Tür', [['art', 'Kapak'], ['video', 'Video'], ['color', 'Renkli'], ['black', 'Sade']])}
+          <p class="st-note" data-note="video">Video: şarkının Spotify'daki döngü videosu (Canvas) arkada oynar. Videosu olmayan şarkılarda kapak kalır. Video, sağdaki "Şu anda çalan" panelinden alınır; o panel Spotify'da kapalıysa video gelmez.</p>
           ${range('lshade', 'Karartma', 0, 80)}
           ${seg('mic', 'Mikrofon butonu', [['side', 'Sağ panel'], ['full', 'Tam ekran']])}
         </section>
@@ -151,6 +179,14 @@ function nkStudio({ root, amb }) {
           ${toggleRow('motion', 'Hareketli arka plan')}
           ${toggleRow('anim', 'Sayfa ve kart animasyonları')}
           <p class="st-note">İkisini de kapatmak eski bilgisayarlarda en çok rahatlatan ayardır.</p>
+        </section>
+        <section>
+          <h4>Söz animasyonu</h4>
+          ${range('lspeed', 'Hız', 50, 200)}
+          ${seg('lspring', 'Esneme', [['none', 'Yok'], ['soft', 'Yumuşak'], ['bouncy', 'Zıplak']])}
+          ${seg('lfill', 'Kelime dolumu', [['sweep', 'Akarak'], ['word', 'Kelime kelime']])}
+          ${seg('fps', 'Akıcılık', [['eco', '30'], ['bal', '60'], ['max', 'Ekran']])}
+          <p class="st-note">Akıcılık söz ekranının saniyedeki güncelleme sayısıdır. 60 çoğu ekranda kusursuz görünür; "Ekran" yüksek yenileme hızlı monitörlerde daha akıcıdır ama Spotify'ı belirgin şekilde yorar.</p>
         </section>
       </div>
       <footer>
@@ -216,6 +252,12 @@ function nkStudio({ root, amb }) {
       rs.setProperty('--l-shade', (cfg.lshade / 100).toFixed(2));
       rs.setProperty('--l-rad', cfg.radius + 'px');
       rs.setProperty('--kfill', cfg.kfill === 'white' ? '#ffffff' : hi);
+      rs.setProperty('--l-hi', cfg.lhi === 'accent' ? hi : '#ffffff');
+      rs.setProperty('--l-space', (cfg.lspace / 100).toFixed(2) + 'em');
+      rs.setProperty('--l-t', (100 / cfg.lspeed).toFixed(3));
+      rs.setProperty('--l-spring', NK_SPRING[cfg.lspring] || NK_SPRING.soft);
+      root.dataset.lcase = cfg.lcase;
+      root.dataset.lfill = cfg.lfill;
       root.dataset.lbg = cfg.lbg;
       root.dispatchEvent(new CustomEvent('zl-style'));
     }
@@ -239,6 +281,21 @@ function nkStudio({ root, amb }) {
     ui.querySelectorAll('[data-s]').forEach((sg) => sg.querySelectorAll('button').forEach((b) => b.classList.toggle('on', cfg[sg.dataset.s] === b.dataset.v)));
     $s('[data-orig]').textContent = cfg.original ? 'zLyrics temasını geri aç' : "Spotify'ı orijinale al";
     ui.classList.toggle('orig', cfg.original);
+    const pl = $s('.st-presets');
+    const ps = store.get('presets', []);
+    pl.textContent = '';
+    if (!ps.length) pl.append(el('p', 'st-note', 'Henüz kayıt yok. Görünümü ayarla, aşağıya bir ad yazıp kaydet.'));
+    ps.forEach((p, i) => {
+      const b = el('button', 'st-preset');
+      b.dataset.preset = i;
+      b.style.setProperty('--c', p.cfg.accent || '#990033');
+      b.append(el('i'), el('span', null, p.name));
+      const x = el('b', null, '✕');
+      x.dataset.del = i;
+      x.title = 'Sil';
+      b.append(x);
+      pl.append(b);
+    });
     ui.querySelectorAll('[data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
     ui.querySelectorAll('[data-page]').forEach((p) => (p.hidden = p.dataset.page !== tab));
     requestAnimationFrame(() => {
@@ -267,6 +324,11 @@ function nkStudio({ root, amb }) {
     const sb = t.closest('[data-s] button');
     if (sb) return set({ [sb.parentElement.dataset.s]: sb.dataset.v });
     if (t.closest('[data-reset]')) return set({ ...NK_DEFAULTS });
+    const del = t.closest('[data-del]');
+    if (del) { const ps = store.get('presets', []); ps.splice(+del.dataset.del, 1); store.set('presets', ps); return sync(); }
+    const pr = t.closest('[data-preset]');
+    if (pr) { const p = store.get('presets', [])[+pr.dataset.preset]; if (p) set({ ...NK_DEFAULTS, ...p.cfg }); return; }
+    if (t.closest('[data-save]')) return savePreset();
     if (t.closest('[data-orig]')) return set({ original: !cfg.original });
   });
   // kaydırıcılar: sürüklerken canlı, karede en fazla bir kez
@@ -283,6 +345,19 @@ function nkStudio({ root, amb }) {
       raf = requestAnimationFrame(() => set({ accent: v, follow: false }));
     }
   });
+
+  function savePreset() {
+    const inp = $s('.st-save input');
+    const name = inp.value.trim() || `Ayar ${store.get('presets', []).length + 1}`;
+    const snap = { ...cfg };
+    NK_NOSAVE.forEach((k) => delete snap[k]);
+    const ps = store.get('presets', []).filter((p) => p.name !== name);
+    ps.push({ name, cfg: snap });
+    store.set('presets', ps.slice(-12));
+    inp.value = '';
+    sync();
+  }
+  ui.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('.st-save')) savePreset(); });
 
   function toggle(on) {
     ui.classList.toggle('open', typeof on === 'boolean' ? on : !ui.classList.contains('open'));

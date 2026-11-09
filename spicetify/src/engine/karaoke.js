@@ -39,13 +39,25 @@ export class Karaoke {
     if (idx < 0 || !this.lines[idx]) return;
     const L = this.lines[idx];
     const ln = el('div', 'k-line enter');
+    const main = el('div', 'k-main');
     slot.words = L.words.map((w, k) => {
       const s = el('span', 'kw', w.text);
-      if (k) ln.append(' ');
-      ln.append(s);
+      if (k) main.append(' ');
+      main.append(s);
       return s;
     });
-    if (L.tr) ln.append(el('div', 'k-tr', L.tr));
+    if (L.tr) main.append(el('div', 'k-tr', L.tr));
+    // Bulanıklık ve parıltı canlandırılmaz (blur/drop-shadow geçişi ekran kartına verilemiyor, sayfa
+    // her karede yeniden katmanlanıyordu): satırın sabit bulanık kopyaları saydamlıkla açılıp kapanır.
+    const copy = (cls) => {
+      const w = el('div', cls);
+      const c = main.cloneNode(true);
+      c.className = cls + 'b';
+      w.setAttribute('aria-hidden', 'true');
+      w.append(c);
+      return w;
+    };
+    ln.append(copy('k-glow'), main, copy('k-z'));
     slot.node.append(ln);
     slot.line = ln;
     requestAnimationFrame(() => requestAnimationFrame(() => ln.classList.remove('enter')));
@@ -70,7 +82,8 @@ export class Karaoke {
       const singing = s.idx === a;
       s.line.classList.toggle('sing', singing && t < ln.end + 0.4);
       s.line.classList.toggle('wait', !singing);
-      ln.words.forEach((w, k) => setVar(s.words[k], '--p', singing ? wordProgress(w, t) : 0, s.c, k));
+      const word = this.fillMode === 'word';
+      ln.words.forEach((w, k) => setVar(s.words[k], '--p', !singing ? 0 : word ? (t >= w.t0 ? 1 : 0) : wordProgress(w, t), s.c, k));
     }
 
     // geri sayım: uzun boşluk sonrası satır

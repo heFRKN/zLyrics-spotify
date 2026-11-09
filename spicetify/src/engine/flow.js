@@ -47,7 +47,7 @@ export class Flow {
       const it = this.items[+n.dataset.i];
       this.user = 0;
       this.host.classList.remove('free');
-      this.onSeek(it.t);
+      this.onSeek(it.t, it);
     });
 
     new ResizeObserver(() => this.measure()).observe(host);
@@ -157,10 +157,17 @@ export class Flow {
       if (s.d !== d) { s.d = d; n.style.setProperty('--d', d); }
       n.classList.toggle('on', i === idx);
     });
+    // sönük renk geçişi (beyaz <-> %30) döngüde yürür: CSS geçişi ekran kartına verilemiyor,
+    // her satır değişiminde sayfayı 180 Hz yeniden katmanlıyordu
+    this.dimA = [];
+    if (this.nodes[idx]) this.dimA.push({ n: this.nodes[idx], a: 1, b: 0.3, t0: now });
+    if (this.nodes[prev]) this.dimA.push({ n: this.nodes[prev], a: 0.3, b: 1, t0: now });
     this._retarget(now, Math.abs(idx - prev) > 12);
   }
 
   show() { this.paused = false; this.needSnap = true; this.measure(); }
+
+  busy() { return !!this._moving; }
 
   update(t, now) {
     const dt = Math.min(0.05, (now - this.lastNow) / 1000);
@@ -193,6 +200,7 @@ export class Flow {
     this.acc = Math.min(this.acc + dt, 0.1);
     const steps = Math.floor(this.acc / STEP);
     this.acc -= steps * STEP;
+    let moved = false;
     for (let i = 0; i < this.nodes.length; i++) {
       const s = this.st[i];
       if (s.pend != null && (snap || now >= s.pendAt)) { s.target = s.pend; s.pend = null; }
@@ -213,10 +221,20 @@ export class Flow {
       if (far !== n._far) { n._far = far; n.classList.toggle('far', far); }
       if (!far && Math.abs(y - s.drawn) > 0.05) {
         s.drawn = y;
+        moved = true;
         n.style.transform = `translate3d(0,${y.toFixed(2)}px,0)`;
       }
     }
     this.needSnap = false;
+    if (this.dimA?.length) this.dimA = this.dimA.filter((d) => {
+      const u = Math.min(1, (now - d.t0) / 700);
+      if (u >= 1) { d.n.style.removeProperty('--nk-dim'); return false; }
+      const e = 1 - Math.pow(1 - u, 4);
+      d.n.style.setProperty('--nk-dim', `rgba(255,255,255,${(d.a + (d.b - d.a) * e).toFixed(3)})`);
+      return true;
+    });
+    // duraklatılmışken bile kayma/yay sürüyorsa döngü hızlı kalsın
+    this._moving = moved || !!this.user || !!this.dimA?.length || this.st.some((s) => s.pend != null || Math.abs(s.v) > 0.5);
 
     // önceki satırın son kelimeleri yarım kalmasın
     const prev = this.items[idx - 1];
@@ -238,7 +256,8 @@ export class Flow {
     const W = this.words[i];
     it.words.forEach((w, k) => {
       const p = wordProgress(w, t);
-      setVar(W.els[k], '--p', p, W.c, k);
+      // "kelime kelime": kelime başladığı an tamamen yanar
+      setVar(W.els[k], '--p', this.fillMode === 'word' ? (t >= w.t0 ? 1 : 0) : p, W.c, k);
       if (w.long) setVar(W.els[k], '--g', p > 0 && p < 1 ? Math.sin(p * Math.PI) : 0, W.c, 'g' + k);
     });
   }

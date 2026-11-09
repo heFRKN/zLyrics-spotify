@@ -50,7 +50,7 @@ html.nk-still #zlyrics .nk-blob, html.nk-still #zlyrics .nk-art { animation: non
 /* Spotify'ın pencere sürükleme şeridi tıklamaları yutmasın */
 #zlyrics { -webkit-app-region: no-drag; }
 #zlyrics[data-view="full"] .nk-top { -webkit-app-region: drag; }
-#zlyrics .nk-top button, #zlyrics .nk-top .nk-modes, #zlyrics .nk-top .nk-tools, #zlyrics .nk-top .nk-now { -webkit-app-region: no-drag; }
+#zlyrics .nk-top button, #zlyrics .nk-top .nk-modes, #zlyrics .nk-top .nk-tools, #zlyrics .nk-top .nk-now, #zlyrics .nk-top .nk-modemenu { -webkit-app-region: no-drag; }
 
 /* ───────────────────────── cam */
 #zlyrics .nk-glass {
@@ -100,10 +100,17 @@ html.nk-still #zlyrics .nk-blob, html.nk-still #zlyrics .nk-art { animation: non
 #zlyrics .nk-art {
   position: absolute; left: -30%; top: -30%; width: 160%; height: 160%;
   opacity: 0; transition: opacity 2s var(--ease);
-  animation: nk-spin 120s linear infinite;
+  animation: nk-spin 120s steps(1440) infinite; /* 12 adım/sn, adım başı 0.25° (bulanık kapakta görünmez) */
   will-change: transform;
 }
 #zlyrics .nk-art.on { opacity: .6; }
+/* Video arka planı (Spotify'ın döngü videosu); yokken kapak arka planı kalır */
+#zlyrics .nk-vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.2s var(--ease); pointer-events: none; }
+#zlyrics.has-vid .nk-vid { opacity: var(--l-vid, 1); }
+#zlyrics.has-vid .nk-art.on { opacity: 0; }
+#zlyrics .nk-blobs { transition: opacity 1.2s var(--ease); }
+#zlyrics.has-vid .nk-blobs { opacity: 0; }
+#zlyrics.has-vid .nk-blob { animation-play-state: paused; }
 #zlyrics .nk-blobs { position: absolute; inset: 0; will-change: transform; }
 /* renk JS'ten doğrudan "color" ile gelir; sadece bu element geçiş yapar */
 #zlyrics .nk-blob {
@@ -137,10 +144,26 @@ html.nk-still #zlyrics .nk-blob, html.nk-still #zlyrics .nk-art { animation: non
 #zlyrics[data-bg="calm"] .nk-art, #zlyrics[data-bg="calm"] .b3 { opacity: 0 !important; }
 #zlyrics[data-bg="calm"] .nk-blob { animation-play-state: paused; opacity: .35; }
 @keyframes nk-spin { to { transform: rotate(360deg); } }
+/* Ortam hareketi ~12 adım/sn: ekran 180 Hz olsa da tarayıcı yalnızca değer değişince kare üretir.
+   ease-in-out eğrisi 8 parçaya bölünmüş, görünüm aynı. */
 @keyframes nk-drift {
-  0% { transform: translate3d(0,0,0) scale(2.9); }
-  50% { transform: translate3d(8cqw,6cqh,0) scale(3.35); }
-  100% { transform: translate3d(-6cqw,10cqh,0) scale(2.65); }
+  0.00% { transform: translate3d(0.00cqw,0.00cqh,0) scale(2.900); animation-timing-function: steps(21, jump-none); }
+  6.25% { transform: translate3d(0.25cqw,0.19cqh,0) scale(2.914); animation-timing-function: steps(21, jump-none); }
+  12.50% { transform: translate3d(1.03cqw,0.77cqh,0) scale(2.958); animation-timing-function: steps(21, jump-none); }
+  18.75% { transform: translate3d(2.34cqw,1.76cqh,0) scale(3.032); animation-timing-function: steps(21, jump-none); }
+  25.00% { transform: translate3d(4.00cqw,3.00cqh,0) scale(3.125); animation-timing-function: steps(21, jump-none); }
+  31.25% { transform: translate3d(5.66cqw,4.24cqh,0) scale(3.218); animation-timing-function: steps(21, jump-none); }
+  37.50% { transform: translate3d(6.97cqw,5.23cqh,0) scale(3.292); animation-timing-function: steps(21, jump-none); }
+  43.75% { transform: translate3d(7.75cqw,5.81cqh,0) scale(3.336); animation-timing-function: steps(21, jump-none); }
+  50.00% { transform: translate3d(8.00cqw,6.00cqh,0) scale(3.350); animation-timing-function: steps(21, jump-none); }
+  56.25% { transform: translate3d(7.56cqw,6.12cqh,0) scale(3.328); animation-timing-function: steps(21, jump-none); }
+  62.50% { transform: translate3d(6.19cqw,6.52cqh,0) scale(3.260); animation-timing-function: steps(21, jump-none); }
+  68.75% { transform: translate3d(3.90cqw,7.17cqh,0) scale(3.145); animation-timing-function: steps(21, jump-none); }
+  75.00% { transform: translate3d(1.00cqw,8.00cqh,0) scale(3.000); animation-timing-function: steps(21, jump-none); }
+  81.25% { transform: translate3d(-1.90cqw,8.83cqh,0) scale(2.855); animation-timing-function: steps(21, jump-none); }
+  87.50% { transform: translate3d(-4.19cqw,9.48cqh,0) scale(2.740); animation-timing-function: steps(21, jump-none); }
+  93.75% { transform: translate3d(-5.56cqw,9.88cqh,0) scale(2.672); animation-timing-function: steps(21, jump-none); }
+  100.00% { transform: translate3d(-6.00cqw,10.00cqh,0) scale(2.650); }
 }
 
 /* ───────────────────────── üst çubuk */
@@ -158,7 +181,7 @@ html.nk-still #zlyrics .nk-blob, html.nk-still #zlyrics .nk-art { animation: non
 #zlyrics[data-view="embed"] .nk-top, #zlyrics[data-view="side"] .nk-top { padding: 16px 18px; }
 #zlyrics[data-view="side"] .nk-top { padding: 12px; justify-content: space-between; }
 #zlyrics[data-view="side"] .nk-now { display: none; }
-#zlyrics[data-view="side"] .nk-modes button { padding: 7px 10px !important; font-size: 12px !important; }
+#zlyrics[data-view="side"] .nk-modes button { padding: 7px 9px !important; font-size: 12px !important; }
 #zlyrics[data-view="side"] .nk-tools .nk-ib.sm { width: 32px; height: 32px; }
 #zlyrics[data-view="side"] .nk-tools .nk-ib.sm svg { width: 17px; height: 17px; }
 #zlyrics[data-view="side"] .nk-panel { top: 60px; right: 10px; left: 10px; width: auto; }
@@ -175,6 +198,27 @@ html.nk-still #zlyrics .nk-blob, html.nk-still #zlyrics .nk-art { animation: non
 @keyframes nk-swap { 0% { transform: scale(.86); opacity: .3; filter: blur(8px); } }
 
 #zlyrics .nk-modes { display: flex; padding: 4px; border-radius: 999px; }
+/* altı mod dar alanda sığmazsa çubuk yatay kayar (araç düğmeleri dışarı itilmesin) */
+#zlyrics .nk-modes { min-width: 0; flex-shrink: 1; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior: contain; }
+#zlyrics .nk-modes::-webkit-scrollbar { display: none; }
+#zlyrics .nk-modes button { flex-shrink: 0; white-space: nowrap; }
+#zlyrics .nk-tools { flex-shrink: 0; }
+/* dar alan: yalnızca seçili mod + açılır liste */
+#zlyrics.compact-modes .nk-modes button:not(.on) { display: none; }
+#zlyrics.compact-modes .nk-modes button.on { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+#zlyrics.compact-modes .nk-modes button.on::after { content: ""; width: 6px; height: 6px; margin: -3px 1px 0 2px; border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor; transform: rotate(45deg); opacity: .8; }
+#zlyrics .nk-modemenu.nk-glass {
+  position: absolute; z-index: 6; top: calc(100% - 4px); left: 12px; min-width: 180px;
+  display: flex; flex-direction: column; padding: 6px; border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03)), rgba(16,16,20,.86);
+  opacity: 0; visibility: hidden; transform: translateY(-6px) scale(.97); transform-origin: 20% 0;
+  transition: opacity .25s var(--ease), transform .4s var(--spring), visibility .25s;
+}
+#zlyrics .nk-modemenu.open { opacity: 1; visibility: visible; transform: none; }
+#zlyrics .nk-modemenu button { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; border-radius: 14px; font-size: 14px; font-weight: 550; color: var(--fg2); text-align: left; }
+#zlyrics .nk-modemenu button:hover { background: rgba(255,255,255,.08); color: #fff; }
+#zlyrics .nk-modemenu button.on { background: rgba(255,255,255,.14); color: #fff; }
+#zlyrics .nk-modemenu kbd { font: 600 11px/1 ui-monospace, monospace; color: var(--fg3); padding: 3px 6px; border-radius: 6px; background: rgba(255,255,255,.06); }
 #zlyrics .nk-modes button { position: relative; z-index: 2; padding: 9px 16px; border-radius: 999px; font-size: 13.5px; font-weight: 550; color: var(--fg2); transition: color .35s; }
 #zlyrics .nk-modes button:hover { color: #fff; }
 #zlyrics .nk-modes button.on { color: #fff; }
@@ -277,6 +321,9 @@ html.nk-still #zlyrics .nk-blob, html.nk-still #zlyrics .nk-art { animation: non
 #zlyrics .nk-keys { font-size: 12px; color: var(--fg3); line-height: 2; padding: 10px 4px 0; border-top: 1px solid var(--line); }
 #zlyrics kbd { font-family: "Geist Mono", monospace; font-size: 11px; color: var(--fg2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; margin-right: 2px; }
 #zlyrics .nk-src { font-size: 12px; color: var(--fg3); padding: 4px 4px 0; }
+#zlyrics .nk-unanchor { font-size: 12px; color: var(--accent-hi); text-decoration: underline; text-underline-offset: 2px; }
+#zlyrics[data-lcase="upper"] .nk-host { text-transform: uppercase; }
+#zlyrics.has-vid .nk-shade::after { opacity: calc(var(--l-shade, .3) + .12); }
 
 #zlyrics .nk-toast {
   position: absolute; left: 50%; bottom: 110px; z-index: 6;
@@ -309,7 +356,9 @@ html.nk-still #zlyrics .nk-blob, html.nk-still #zlyrics .nk-art { animation: non
   display: flex; gap: 10px; opacity: 0; transition: opacity .4s; pointer-events: none;
 }
 #zlyrics.loading .nk-loader { opacity: 1; }
-#zlyrics .nk-loader i { width: 10px; height: 10px; border-radius: 50%; background: #fff; animation: nk-pulse 1.2s ease-in-out infinite; }
+#zlyrics .nk-loader i { width: 10px; height: 10px; border-radius: 50%; background: #fff; }
+/* yalnızca yüklenirken: görünmez noktaların sonsuz animasyonu sayfayı her karede uyanık tutuyordu */
+#zlyrics.loading .nk-loader i { animation: nk-pulse 1.2s ease-in-out infinite; }
 #zlyrics .nk-loader i:nth-child(2) { animation-delay: .15s; }
 #zlyrics .nk-loader i:nth-child(3) { animation-delay: .3s; }
 @keyframes nk-pulse { 0%, 100% { opacity: .2; transform: scale(.8); } 50% { opacity: 1; transform: scale(1); } }
@@ -324,13 +373,13 @@ html.nk-still #zlyrics .nk-blob, html.nk-still #zlyrics .nk-art { animation: non
   position: absolute; left: 0; right: 0; top: 0;
   padding: .16em .32em; margin-left: -.32em;
   border-radius: 18px;
-  font-size: var(--lyr); font-weight: var(--l-weight, 700); line-height: 1.17; letter-spacing: -.024em;
+  font-size: var(--lyr); font-weight: var(--l-weight, 700); line-height: 1.17; letter-spacing: calc(-.024em + var(--l-space, 0em));
   text-wrap: pretty;
   opacity: var(--l-dim, .3); scale: .955; transform-origin: 0 50%;
   filter: blur(calc(min(var(--d, 0), 4) * var(--l-blur, .5) * 1px));
   will-change: transform; cursor: pointer;
   --nk-dim: #fff;
-  transition: opacity .8s var(--ease), scale 1s var(--ease), background .3s, --nk-dim .7s var(--ease);
+  transition: opacity calc(.8s * var(--l-t, 1)) var(--ease), scale calc(1s * var(--l-t, 1)) var(--ease), background .3s;
 }
 #zlyrics .fl.on { opacity: 1; scale: 1; filter: none; --nk-dim: rgba(255,255,255,.3); }
 #zlyrics .fl.far { visibility: hidden; will-change: auto; } /* ekran dışı satır katman tutmasın */
@@ -342,7 +391,7 @@ html.nk-still #zlyrics .nk-blob, html.nk-still #zlyrics .nk-art { animation: non
 #zlyrics .w {
   --p: 0; --g: 0;
   display: inline-block; padding: .08em 0; margin: -.08em 0;
-  background-image: linear-gradient(90deg, #fff calc(var(--p) * 135% - 35%), var(--nk-dim) calc(var(--p) * 135%));
+  background-image: linear-gradient(90deg, var(--l-hi, #fff) calc(var(--p) * 135% - 35%), var(--nk-dim) calc(var(--p) * 135%));
   -webkit-background-clip: text; background-clip: text; color: transparent;
   transform: translateY(calc(var(--p) * -.045em * var(--l-lift, 1)));
 }
@@ -368,7 +417,7 @@ html.nk-still #zlyrics .nk-blob, html.nk-still #zlyrics .nk-art { animation: non
 
 /* Karaoke */
 #zlyrics .karaoke { display: grid; place-items: center; }
-#zlyrics .k-stage { width: 88cqw; display: flex; flex-direction: column; gap: .4em; font-size: calc(clamp(24px, 5.6cqw, 78px) * var(--l-scale, 1)); font-weight: var(--l-weight2, 800); letter-spacing: -.032em; line-height: 1.1; font-weight: var(--l-weight2, 800); }
+#zlyrics .k-stage { width: 88cqw; display: flex; flex-direction: column; gap: .4em; font-size: calc(clamp(24px, 5.6cqw, 78px) * var(--l-scale, 1)); font-weight: var(--l-weight2, 800); letter-spacing: calc(-.032em + var(--l-space, 0em)); line-height: 1.1; font-weight: var(--l-weight2, 800); }
 #zlyrics[data-size="s"] .k-stage { font-size: clamp(20px, 4.2cqw, 58px); }
 #zlyrics[data-size="l"] .k-stage { font-size: clamp(28px, 7cqw, 100px); }
 #zlyrics .k-count { display: flex; gap: .3em; height: .5em; margin-bottom: .2em; }
@@ -377,11 +426,25 @@ html.nk-still #zlyrics .nk-blob, html.nk-still #zlyrics .nk-art { animation: non
 #zlyrics .k-slot { position: relative; display: grid; min-height: 2.25em; }
 #zlyrics .k-slot.top { justify-items: start; align-items: end; text-align: left; }
 #zlyrics .k-slot.bot { justify-items: end; align-items: start; text-align: right; }
-#zlyrics .k-line { grid-area: 1 / 1; max-width: 92%; transition: opacity .55s var(--ease), transform .8s var(--ease), filter .6s var(--ease); }
+#zlyrics .k-line { position: relative; grid-area: 1 / 1; max-width: 92%; transition: opacity calc(.55s * var(--l-t, 1)) var(--ease), transform calc(.8s * var(--l-t, 1)) var(--ease); }
 #zlyrics .k-line.wait { opacity: .5; }
-#zlyrics .k-line.sing { filter: drop-shadow(0 0 34px rgba(153,0,51,.55)); }
-#zlyrics .k-line.enter { opacity: 0; transform: translateY(.45em); filter: blur(10px); }
-#zlyrics .k-line.leave { opacity: 0; transform: translateY(-.3em) scale(.98); filter: blur(12px); }
+#zlyrics .k-line.enter { opacity: 0; transform: translateY(.45em); }
+#zlyrics .k-line.leave { opacity: 0; transform: translateY(-.3em) scale(.98); }
+/* Parıltı ve bulanıklık: sabit bulanık kopyalar, yalnızca saydamlıkları canlanır (blur canlandırılmaz).
+   drop-shadow(34px) = blur(17px) ile boyanmış kopya. */
+#zlyrics .k-main { position: relative; transition: opacity calc(.6s * var(--l-t, 1)) var(--ease); }
+#zlyrics .k-glow, #zlyrics .k-z { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity calc(.6s * var(--l-t, 1)) var(--ease); }
+#zlyrics .k-glowb { filter: blur(17px); }
+#zlyrics .k-glowb .kw { background: none; color: rgba(153,0,51,.55); }
+#zlyrics .k-glowb .k-tr { color: rgba(153,0,51,.55); }
+#zlyrics .k-zb .kw { background: none; color: rgba(255,255,255,.94); }
+#zlyrics .k-line.leave .k-zb .kw { color: var(--kfill, var(--accent-hi)); }
+#zlyrics .k-line.sing .k-glow { opacity: 1; }
+#zlyrics .k-line.enter .k-main, #zlyrics .k-line.leave .k-main { opacity: 0; }
+#zlyrics .k-line.enter .k-z { opacity: 1; }
+#zlyrics .k-zb { filter: blur(10px); }
+#zlyrics .k-line.leave .k-z { opacity: 1; }
+#zlyrics .k-line.leave .k-zb { filter: blur(12px); }
 #zlyrics .kw {
   --p: 0; display: inline-block; padding: .08em 0; margin: -.08em 0;
   background-image: linear-gradient(90deg, var(--kfill, var(--accent-hi)) calc(var(--p) * 125% - 25%), rgba(255,255,255,.94) calc(var(--p) * 125%));
@@ -392,24 +455,130 @@ html.nk-still #zlyrics .nk-blob, html.nk-still #zlyrics .nk-art { animation: non
 #zlyrics .focus { display: grid; place-items: center; }
 #zlyrics .fo-line {
   position: absolute; width: 86cqw; text-align: center;
-  font-size: calc(clamp(30px, 8.2cqw, 132px) * var(--l-scale, 1)); font-weight: var(--l-weight2, 800); letter-spacing: -.045em; line-height: 1.02;
+  font-size: calc(clamp(30px, 8.2cqw, 132px) * var(--l-scale, 1)); font-weight: var(--l-weight2, 800); letter-spacing: calc(-.045em + var(--l-space, 0em)); line-height: 1.02; color: var(--l-hi, #fff);
   text-wrap: balance;
-  transition: opacity .7s var(--ease), filter .7s var(--ease), transform 1s var(--ease);
+  transition: opacity calc(.7s * var(--l-t, 1)) var(--ease), transform calc(1s * var(--l-t, 1)) var(--ease);
 }
 #zlyrics[data-size="s"] .fo-line { font-size: clamp(26px, 6.2cqw, 100px); }
 #zlyrics[data-size="l"] .fo-line { font-size: clamp(36px, 10cqw, 160px); }
-#zlyrics .fo-line.out { opacity: 0; filter: blur(18px); transform: translateY(-.35em) scale(1.04); }
+/* Kayma/saydamlık dış katmanda, bulanıklık iç katmanda (aynı elementte üçü birden ekran kartına verilemiyor) */
+#zlyrics .fo-line.out { opacity: 0; transform: translateY(-.35em) scale(1.04); }
+/* Bulanıklık asla canlandırılmaz (blur geçişi ekran kartına verilemiyor, sayfa her karede yeniden
+   katmanlanıyordu): sabit bulanık kopya ile net hâl arasında saydamlık geçişi yapılır. */
+#zlyrics .fo-lb { transition: opacity calc(.5s * var(--l-t, 1)) var(--ease); }
+#zlyrics .fo-lz { position: absolute; inset: 0; opacity: 0; transition: opacity calc(.45s * var(--l-t, 1)) var(--ease); pointer-events: none; }
+#zlyrics .fo-lzb { filter: blur(18px); }
+#zlyrics .fo-line.out .fo-lb { opacity: 0; }
+#zlyrics .fo-line.out .fo-lz { opacity: 1; }
 #zlyrics .fo-tr { font-size: .3em; letter-spacing: -.01em; margin-top: .6em; }
 #zlyrics .fo-w {
-  display: inline-block; opacity: 0; filter: blur(16px); transform: translateY(.4em) scale(.94);
-  transition: opacity .6s var(--ease), filter .8s var(--ease), transform 1.1s var(--spring), color .8s;
+  display: inline-block; opacity: 0; transform: translateY(.4em) scale(.94);
+  transition: opacity calc(.6s * var(--l-t, 1)) var(--ease), transform calc(1.1s * var(--l-t, 1)) var(--l-spring, var(--spring));
 }
-#zlyrics .fo-w.on { opacity: 1; filter: blur(0); transform: none; }
-#zlyrics .fo-w.done { color: rgba(255,255,255,.82); }
-#zlyrics .fo-dots { position: absolute; display: flex; gap: 18px; transition: opacity .5s var(--ease), filter .5s var(--ease); }
-#zlyrics .fo-dots.out { opacity: 0; filter: blur(10px); }
-#zlyrics .fo-dots i { width: 16px; height: 16px; border-radius: 50%; background: #fff; opacity: calc(.2 + var(--k, 0) * .8); }
+/* biten kelime %82'ye iner: renk geçişi ekran kartında yürümüyor, saydamlık yürüyor (beyazda görüntü aynı) */
+#zlyrics .fo-w { position: relative; }
+#zlyrics .fo-b { display: inline-block; opacity: 0; transition: opacity calc(.8s * var(--l-t, 1)) var(--ease); }
+#zlyrics .fo-z { position: absolute; left: 0; top: 0; opacity: 1; transition: opacity calc(.8s * var(--l-t, 1)) var(--ease); pointer-events: none; }
+#zlyrics .fo-z > span { display: inline-block; filter: blur(16px); }
+#zlyrics .fo-w.on { opacity: 1; transform: none; }
+#zlyrics .fo-w.on .fo-b { opacity: 1; }
+#zlyrics .fo-w.on .fo-z { opacity: 0; }
+#zlyrics .fo-w.done .fo-b { opacity: .82; }
+#zlyrics .fo-lz .fo-z { display: none; }
+#zlyrics .fo-dots { position: absolute; display: flex; gap: 18px; transition: opacity .5s var(--ease); }
+#zlyrics .fo-dots.out { opacity: 0; }
+#zlyrics .fo-dots i { position: relative; width: 16px; height: 16px; border-radius: 50%; background: #fff; opacity: calc(.2 + var(--k, 0) * .8); }
+/* çıkışta noktalar dağılır: bulanık hâle sabit bir hale ile geçilir (blur canlandırılmaz) */
+#zlyrics .fo-dots i::after { content: ""; position: absolute; inset: -12px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255,255,255,.6), transparent); opacity: 0; transition: opacity .5s var(--ease); }
+#zlyrics .fo-dots.out i::after { opacity: 1; }
 #zlyrics .k-tr { font-size: .4em; }
+
+/* Klip: video (yoksa kapak) üstünde altyazı */
+#zlyrics .clip::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 70%; background: linear-gradient(180deg, transparent, rgba(0,0,0,.5) 40%, rgba(0,0,0,.82)); pointer-events: none; }
+#zlyrics .cl-box { position: absolute; left: 6cqw; right: 6cqw; bottom: 25cqh; display: grid; justify-items: center; text-align: center; }
+#zlyrics[data-view="full"] .cl-box { bottom: 30cqh; }
+#zlyrics .cl-line {
+  grid-area: 1 / 1; align-self: end; max-width: 100%;
+  font-size: calc(clamp(24px, 4.6cqw, 72px) * var(--l-scale, 1)); font-weight: var(--l-weight2, 800); line-height: 1.12; letter-spacing: calc(-.03em + var(--l-space, 0em));
+  text-wrap: balance; transform-origin: 50% 0;
+  transition: opacity calc(.6s * var(--l-t, 1)) var(--ease), transform calc(.8s * var(--l-t, 1)) var(--l-spring, var(--spring));
+}
+#zlyrics[data-size="s"] .cl-line { font-size: clamp(20px, 3.6cqw, 56px); }
+#zlyrics[data-size="l"] .cl-line { font-size: clamp(28px, 5.8cqw, 92px); }
+#zlyrics .cl-line.nx { opacity: .42; transform: translateY(calc(100% + .35em)) scale(.56); }
+#zlyrics .cl-line.nx.enter { opacity: 0; transform: translateY(calc(100% + .9em)) scale(.56); }
+#zlyrics .cl-line.cur.enter { opacity: 0; transform: translateY(.4em); }
+#zlyrics .cl-line.out { opacity: 0; transform: translateY(-.6em) scale(.96); }
+#zlyrics .cl-line.gone { opacity: 0; }
+#zlyrics .clw {
+  --p: 0; display: inline-block; padding: .08em 0; margin: -.08em 0;
+  background-image: linear-gradient(90deg, var(--l-hi, #fff) calc(var(--p) * 130% - 30%), rgba(255,255,255,.5) calc(var(--p) * 130%));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+#zlyrics .cl-line.nx .clw { background: none; color: #fff; }
+#zlyrics .cl-tr { font-size: .42em; font-weight: 600; color: var(--fg2); margin-top: .35em; letter-spacing: -.01em; }
+#zlyrics .cl-dots { position: absolute; left: 50%; bottom: calc(25cqh + 1.4em); font-size: clamp(24px, 4.6cqw, 72px); display: flex; gap: 14px; translate: -50% 0; opacity: 0; transition: opacity .5s var(--ease); }
+#zlyrics .cl-dots.on { opacity: 1; }
+#zlyrics[data-view="full"] .cl-dots { bottom: calc(30cqh + 1.4em); }
+#zlyrics .cl-dots i { width: 12px; height: 12px; border-radius: 50%; background: #fff; opacity: calc(.25 + var(--k, 0) * .75); }
+/* Klip modunda arka plan videonun/kapağın kendisi: karartma hafif, ışıklar kapalı */
+#zlyrics[data-mode="clip"] .nk-shade { background: radial-gradient(140% 100% at 50% 40%, transparent 55%, rgba(0,0,0,.5)); }
+#zlyrics[data-mode="clip"] .nk-shade::after { opacity: calc(var(--l-shade, .3) * .35); }
+#zlyrics[data-mode="clip"] .nk-blobs, #zlyrics[data-mode="clip"] .nk-pulse { opacity: 0; }
+#zlyrics[data-mode="clip"] .nk-blob { animation-play-state: paused; }
+#zlyrics .nk-kb { position: absolute; inset: -4%; width: 108%; height: 108%; object-fit: cover; opacity: 0; transition: opacity 1.2s var(--ease); pointer-events: none; }
+#zlyrics[data-mode="clip"]:not(.has-vid) .nk-kb { opacity: .72; animation: nk-kb 38s ease-in-out infinite alternate; }
+#zlyrics[data-mode="clip"]:not(.has-vid) .nk-art.on { opacity: 0; }
+#zlyrics.paused .nk-kb { animation-play-state: paused; }
+@keyframes nk-kb { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.14) translate(-2.5%, 1.5%); } }
+#zlyrics[data-mode="clip"].has-vid .nk-vid { opacity: 1; }
+#zlyrics[data-mode="clip"].cover[data-view="full"] .nk-host { left: 0; }
+#zlyrics[data-mode="clip"] .nk-cover { opacity: 0; pointer-events: none; }
+
+/* Kelime: tek kelime, kocaman */
+#zlyrics .words { display: grid; place-items: center; }
+#zlyrics .wd-stage { position: absolute; inset: 0 0 18cqh; display: grid; place-items: center; font-size: calc(clamp(48px, 15cqw, 240px) * var(--l-scale, 1)); font-weight: 900; letter-spacing: calc(-.05em + var(--l-space, 0em)); line-height: 1; }
+#zlyrics[data-size="s"] .wd-stage { font-size: clamp(40px, 11cqw, 180px); }
+#zlyrics[data-size="l"] .wd-stage { font-size: clamp(56px, 19cqw, 300px); }
+#zlyrics .wd-big {
+  grid-area: 1 / 1; max-width: 94cqw; text-align: center; overflow-wrap: anywhere; color: var(--l-hi, #fff);
+  transform: translateX(var(--dx, 0)) rotate(var(--r, 0deg));
+  transition: opacity calc(.35s * var(--l-t, 1)) var(--ease), transform calc(.6s * var(--l-t, 1)) var(--l-spring, var(--spring));
+}
+#zlyrics .wd-big.in { opacity: 0; transform: translateX(var(--dx, 0)) translateY(.18em) rotate(var(--r, 0deg)) scale(.7); }
+#zlyrics .wd-big.out { opacity: 0; transform: translateX(var(--dx, 0)) translateY(-.12em) rotate(var(--r, 0deg)) scale(1.18); transition-duration: calc(.4s * var(--l-t, 1)); }
+#zlyrics .wd-big.held { color: var(--kfill, var(--accent-hi)); }
+#zlyrics .wd-ctx { position: absolute; left: 8cqw; right: 8cqw; bottom: 16cqh; text-align: center; font-size: calc(clamp(15px, 2.1cqw, 30px) * var(--l-scale, 1)); font-weight: 650; color: rgba(255,255,255,.34); line-height: 1.35; opacity: 0; transition: opacity .5s var(--ease); text-wrap: balance; }
+#zlyrics[data-view="full"] .wd-ctx { bottom: 21cqh; }
+#zlyrics .wd-ctx.on { opacity: 1; }
+#zlyrics .wd-ctx span { transition: color .25s; }
+#zlyrics .wd-ctx span.done { color: rgba(255,255,255,.62); }
+#zlyrics .wd-ctx span.on { color: #fff; }
+#zlyrics .wd-tr { font-size: .8em; margin-top: .3em; color: var(--fg3); }
+#zlyrics .wd-ctx.next { color: rgba(255,255,255,.3); }
+#zlyrics .wd-dots { position: absolute; left: 50%; top: calc(50% - 9cqh); margin: -9px 0 0 -39px; display: flex; gap: 18px; opacity: 0; transition: opacity .5s var(--ease); }
+#zlyrics .wd-dots.on { opacity: 1; }
+#zlyrics .wd-dots i { width: 18px; height: 18px; border-radius: 50%; background: #fff; opacity: calc(.2 + var(--k, 0) * .8); }
+
+/* Daktilo: harf harf */
+#zlyrics .typer { overflow: hidden; -webkit-mask-image: linear-gradient(180deg, transparent 4%, #000 34%, #000); }
+#zlyrics .ty-col {
+  position: absolute; left: calc(50% - var(--col-w) / 2); width: var(--col-w); bottom: 36cqh;
+  display: flex; flex-direction: column; gap: .3em;
+  font-size: calc(var(--lyr) * 1.05); font-weight: var(--l-weight, 700); line-height: 1.16; letter-spacing: calc(-.02em + var(--l-space, 0em));
+  transition: transform calc(.7s * var(--l-t, 1)) var(--ease);
+}
+#zlyrics.align-center .ty-col { text-align: center; }
+#zlyrics .ty-line { transition: opacity calc(.7s * var(--l-t, 1)) var(--ease); }
+#zlyrics .ty-line.old { opacity: calc(.42 - var(--age, 1) * .08); }
+#zlyrics .ty-w { white-space: nowrap; }
+#zlyrics .ty-c { opacity: 0; transition: opacity .12s; color: var(--l-hi, #fff); }
+#zlyrics .ty-c.on { opacity: 1; }
+#zlyrics .ty-line.old .ty-c { color: #fff; }
+#zlyrics .ty-caret { display: inline-block; width: .07em; height: .9em; margin: 0 .02em -.08em; border-radius: 2px; background: var(--accent-hi); animation: ty-blink 1s steps(2, jump-none) infinite; }
+@keyframes ty-blink { from { opacity: 1; } to { opacity: 0; } }
+#zlyrics.paused .ty-caret { animation-play-state: paused; }
+#zlyrics .ty-tr { font-size: .5em; color: var(--fg3); margin-top: .2em; }
 
 /* Düz / boş */
 #zlyrics .nk-plain {
@@ -552,6 +721,16 @@ html.nk-still #zlyrics .nk-blob, html.nk-still #zlyrics .nk-art { animation: non
 #nk-studio .st-themes button:hover { background: rgba(255,255,255,.1); transform: translateY(-2px); }
 #nk-studio .st-themes i { height: 34px; border-radius: 10px; background: radial-gradient(120% 140% at 15% 10%, var(--a), var(--b) 75%); box-shadow: inset 0 1px 0 rgba(255,255,255,.2); }
 #nk-studio .st-themes span { font-size: 12px; font-weight: 550; color: rgba(255,255,255,.8); }
+#nk-studio .st-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+#nk-studio .st-preset { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 6px 0 8px; border-radius: 999px; background: rgba(255,255,255,.07); font-size: 12.5px; font-weight: 550; transition: background .25s; }
+#nk-studio .st-preset:hover { background: rgba(255,255,255,.13); }
+#nk-studio .st-preset i { width: 16px; height: 16px; border-radius: 50%; background: var(--c); box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
+#nk-studio .st-preset b { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; font-size: 10px; color: rgba(255,255,255,.45); }
+#nk-studio .st-preset b:hover { background: rgba(255,255,255,.12); color: #fff; }
+#nk-studio .st-save { display: flex; gap: 8px; }
+#nk-studio .st-save input { flex: 1; min-width: 0; height: 42px; padding: 0 16px; border-radius: 999px; border: 0; outline: none; background: rgba(255,255,255,.08); color: #fff; font: inherit; font-size: 13.5px; }
+#nk-studio .st-save input:focus { background: rgba(255,255,255,.12); }
+#nk-studio .st-save .st-btn { padding: 0 18px; }
 #nk-studio .st-note { font-size: 12px; color: rgba(255,255,255,.4); padding-top: 6px; line-height: 1.5; }
 #nk-studio .st-card { max-height: calc(100vh - 150px); }
 

@@ -24,8 +24,8 @@ const SVG = {
   tr: sv('<path d="M3 5h9M7.5 3v2M5 5c.6 3 2.6 5.4 5.5 6.5M10 5c-.8 3.5-3 6-6.5 7.5M13 21l4-10 4 10M14.4 17.5h5.2"/>'),
   cover: sv('<rect x="3" y="5" width="8" height="8" rx="2"/><path d="M14 7h7M14 11h7M3 17h18M3 21h12"/>'),
 };
-const MODES = ['flow', 'karaoke', 'focus'];
-const MODE_TR = { flow: 'Akış', karaoke: 'Karaoke', focus: 'Odak' };
+const MODES = ['flow', 'karaoke', 'focus', 'clip', 'words', 'typer'];
+const MODE_TR = { flow: 'Akış', karaoke: 'Karaoke', focus: 'Odak', clip: 'Klip', words: 'Kelime', typer: 'Daktilo' };
 
 function nkMain() {
   const P = Spicetify.Player;
@@ -62,6 +62,7 @@ function nkMain() {
   root.innerHTML = `
     <div class="nk-amb">
       <canvas class="nk-art" width="40" height="40"></canvas><canvas class="nk-art" width="40" height="40"></canvas>
+      <img class="nk-kb" alt=""><video class="nk-vid" muted playsinline disablepictureinpicture></video>
       <div class="nk-blobs"><div class="nk-blob b1"></div><div class="nk-blob b2"></div><div class="nk-blob b3"></div><div class="nk-blob b4"></div></div>
       <div class="nk-pulse"></div>
       <div class="nk-shade"></div><div class="nk-grain"></div>
@@ -70,6 +71,7 @@ function nkMain() {
       <button class="nk-ib nk-glass only-full" data-a="shrink" title="Küçült (Esc)">${SVG.down}</button>
       <div class="nk-now"><img alt=""><div><b></b><span></span></div></div>
       <div class="nk-modes nk-glass"><i class="nk-pill"></i>${MODES.map((m) => `<button data-mode="${m}">${MODE_TR[m]}</button>`).join('')}</div>
+      <div class="nk-modemenu nk-glass">${MODES.map((m, i) => `<button data-mode="${m}">${MODE_TR[m]}<kbd>${i + 1}</kbd></button>`).join('')}</div>
       <div class="nk-tools nk-glass">
         <button class="nk-ib sm" data-a="queue" title="Sıradakiler (Q)">${DR_SVG.queue}</button>
         <button class="nk-ib sm" data-a="search" title="Ara (/)">${DR_SVG.search}</button>
@@ -83,6 +85,9 @@ function nkMain() {
       <div class="nk-layer flow" data-l="flow"></div>
       <div class="nk-layer karaoke" data-l="karaoke"></div>
       <div class="nk-layer focus" data-l="focus"></div>
+      <div class="nk-layer clip" data-l="clip"></div>
+      <div class="nk-layer words" data-l="words"></div>
+      <div class="nk-layer typer" data-l="typer"></div>
       <div class="nk-layer nk-plain" data-l="plain"></div>
       <div class="nk-layer nk-empty" data-l="empty"><img alt=""><p></p></div>
       <div class="nk-loader"><i></i><i></i><i></i></div>
@@ -112,7 +117,7 @@ function nkMain() {
       <div class="nk-row"><label>Kapak düzeni</label><button class="nk-switch" data-sw="cover"><i></i></button></div>
       <div class="nk-row"><label>Çeviri</label><button class="nk-switch" data-sw="tr"><i></i></button></div>
       <button class="nk-more" data-a="studio">Yazı, renk, arka plan… <b>Stüdyo'da aç</b></button>
-      <p class="nk-keys"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> mod · <kbd>T</kbd> çeviri · <kbd>C</kbd> kapak · <kbd>F</kbd> tam ekran · <kbd>[</kbd><kbd>]</kbd> senkron · <kbd>Esc</kbd></p>
+      <p class="nk-keys"><kbd>1</kbd>–<kbd>6</kbd> mod · <kbd>T</kbd> çeviri · <kbd>C</kbd> kapak · <kbd>F</kbd> tam ekran · <kbd>[</kbd><kbd>]</kbd> senkron · <kbd>Esc</kbd></p>
       <p class="nk-src"></p>
     </div>
     <div class="nk-toast nk-glass"></div>`;
@@ -168,11 +173,23 @@ function nkMain() {
   root.querySelectorAll('[data-l]').forEach((n) => (L[n.dataset.l] = n));
 
   const R = {
-    flow: new Flow(L.flow, { onSeek: (t) => seek(t - offset()) }),
+    // tahmini senkronda satıra tıklamak oraya atlamaz: "bu satır şimdi söyleniyor" diye sabitler
+    flow: new Flow(L.flow, { onSeek: (t, it) => (S.lyr?.estimated && it ? anchorLine(it.idx) : seek(t - offset())) }),
     karaoke: new Karaoke(L.karaoke),
     focus: new Focus(L.focus),
+    clip: new Clip(L.clip),
+    words: new Words(L.words),
+    typer: new Typer(L.typer),
   };
   R.flow.paused = true;
+  // Stüdyo: kelime dolum biçimi ve tahmini senkron açılıp kapanınca sözler yeniden kurulsun
+  let lastAuto = studio.cfg.autosync;
+  const applyLyricCfg = () => {
+    R.flow.fillMode = R.karaoke.fillMode = R.clip.fillMode = studio.cfg.lfill;
+    if (studio.cfg.autosync !== lastAuto) { lastAuto = studio.cfg.autosync; if (S.meta) loadLyrics(S.meta); }
+  };
+  root.addEventListener('zl-style', applyLyricCfg);
+  applyLyricCfg();
 
   /* ───────────── saat: Spotify'ın ilerlemesini kare kare yumuşat */
   let disp = 0, lastNow = performance.now();
@@ -276,18 +293,94 @@ function nkMain() {
     return { ...base, synced: true, lines: finalize(lines) };
   }
 
+  // "(feat. X)", "- 2011 Remaster" gibi ekler aramayı bozuyor
+  const cleanTitle = (s) => s
+    .replace(/\s*[([](feat\.?|ft\.?|with|prod\.?)\s[^)\]]*[)\]]/gi, '')
+    .replace(/\s+-\s+[^-]*(remaster|version|edit|mix|live|mono|stereo|sürüm|versiyon)[^-]*$/i, '')
+    .trim();
+  const lrcJson = (path, p) => fetch(`https://lrclib.net/api/${path}?` + new URLSearchParams(p)).then((x) => (x.ok ? x.json() : null)).catch(() => null);
+
   async function lrclib(m) {
-    const p = new URLSearchParams({ track_name: m.title, artist_name: m.artist.split(',')[0], album_name: m.album, duration: Math.round(m.duration) });
-    let r = await fetch('https://lrclib.net/api/get?' + p).then((x) => (x.ok ? x.json() : null)).catch(() => null);
-    if (!r?.syncedLyrics) {
-      const list = await fetch('https://lrclib.net/api/search?' + new URLSearchParams({ track_name: m.title, artist_name: m.artist.split(',')[0] }))
-        .then((x) => (x.ok ? x.json() : [])).catch(() => []);
-      r = list.find((x) => x.syncedLyrics && Math.abs((x.duration || 0) - m.duration) < 8) || r || list.find((x) => x.plainLyrics);
+    const artists = m.artist.split(',').map((a) => a.trim()).filter(Boolean);
+    const title = cleanTitle(m.title);
+    const near = (x, tol) => Math.abs((x.duration || 0) - m.duration) < tol;
+    let plain = null;
+    const take = (r) => {
+      if (!r) return null;
+      if (r.syncedLyrics) return r;
+      // bazı kayıtlarda zamanlı metin "düz" alana konmuş
+      if (/\[\d+:\d+/.test(r.plainLyrics || '')) return { ...r, syncedLyrics: r.plainLyrics };
+      if (r.plainLyrics && !plain) plain = r;
+      if (r.instrumental && !plain) plain = r;
+      return null;
+    };
+    // 1) birebir kayıt, 2) temizlenmiş adla, 3) geniş arama (diğer sanatçılar, serbest metin)
+    let hit = take(await lrcJson('get', { track_name: m.title, artist_name: artists[0] || '', album_name: m.album, duration: Math.round(m.duration) }));
+    if (!hit && title !== m.title) hit = take(await lrcJson('get', { track_name: title, artist_name: artists[0] || '', duration: Math.round(m.duration) }));
+    const queries = [
+      { track_name: title, artist_name: artists[0] || '' },
+      ...artists.slice(1, 3).map((a) => ({ track_name: title, artist_name: a })),
+      { q: `${title} ${artists[0] || ''}` },
+    ];
+    for (const qy of queries) {
+      if (hit) break;
+      const list = (await lrcJson('search', qy)) || [];
+      for (const tol of [4, 10]) {
+        for (const x of list) if (!hit && near(x, tol)) hit = take(x);
+      }
+      for (const x of list) if (near(x, 15)) take(x);
     }
-    if (r?.syncedLyrics) return { synced: true, lines: parseLrc(r.syncedLyrics), source: 'LRCLIB' };
-    if (r?.plainLyrics) return { synced: false, plain: r.plainLyrics, source: 'LRCLIB' };
-    if (r?.instrumental) return { synced: false, instrumental: true };
+    if (hit) return { synced: true, lines: parseLrc(hit.syncedLyrics), source: 'LRCLIB' };
+    if (plain?.plainLyrics) return { synced: false, plain: plain.plainLyrics, source: 'LRCLIB' };
+    if (plain?.instrumental) return { synced: false, instrumental: true };
     return null;
+  }
+
+  /* ───────────── tahmini senkron (zamanı olmayan sözler) */
+  S.anchors = store.get('anchors', {});
+  async function estimate(m, plain) {
+    const a = await Spicetify.getAudioData(m.uri).catch(() => null);
+    return autoSync(plain, a, m.duration);
+  }
+  function estLines(m, res) {
+    return anchorTimes(res.est, S.anchors[m.uri], m.duration);
+  }
+  function remount() {
+    Object.values(R).forEach((r) => r.mount(S.prep));
+    if (S.tr) translate();
+    showLayer();
+  }
+  function srcLabel() {
+    const res = S.lyr;
+    const n = res?.estimated ? Object.keys(S.anchors[S.uri] || {}).length : 0;
+    const p = q('.nk-src');
+    p.textContent = res?.source ? `Sözler: ${res.source}` : '';
+    if (res?.estimated) {
+      p.append(` · tahmini senkron${n ? ` (${n} satır hizalı)` : ''} — Akış'ta duyduğun satıra tıkla `);
+      if (n) { const b = el('button', 'nk-unanchor', 'sıfırla'); b.onclick = () => clearAnchors(); p.append(b); }
+    }
+  }
+  function anchorLine(i) {
+    const m = S.meta, res = S.cache.get(m?.uri);
+    if (!res?.est) return;
+    // tıklama tepkisi ~0.25 sn geç kalır
+    const now = (safe(() => P.getProgress(), 0) || 0) / 1000 - 0.25 - offset();
+    const a = { ...(S.anchors[m.uri] || {}), [i]: +Math.max(0, now).toFixed(2) };
+    S.anchors[m.uri] = a;
+    const keys = Object.keys(S.anchors);
+    if (keys.length > 300) delete S.anchors[keys[0]];
+    store.set('anchors', S.anchors);
+    S.prep = prepare(estLines(m, res), m.duration);
+    remount();
+    srcLabel();
+    toast('Satır hizalandı · sonrakiler ona göre kaydı');
+  }
+  function clearAnchors() {
+    const m = S.meta, res = S.cache.get(m?.uri);
+    delete S.anchors[m.uri];
+    store.set('anchors', S.anchors);
+    if (res?.est) { S.prep = prepare(estLines(m, res), m.duration); remount(); }
+    srcLabel();
   }
 
   async function loadLyrics(m) {
@@ -304,11 +397,17 @@ function nkMain() {
       S.cache.set(m.uri, res);
       if (S.cache.size > 40) S.cache.delete(S.cache.keys().next().value); // bellek: en eski 40'ı tut
     }
+    // zamanı olmayan sözler: ses analizinden tahmini senkron (bir kez hesaplanıp önbellekte kalır)
+    if (!res.synced && res.plain && !res.instrumental && studio.cfg.autosync && res.est === undefined) {
+      res.est = (await estimate(m, res.plain).catch(() => null)) || null;
+    }
     if (token !== S.token) return;
     root.classList.remove('loading');
     S.lyr = res;
-    if (res.synced && res.lines?.length) {
-      S.prep = prepare(res.lines, m.duration);
+    const est = !res.synced && res.est?.length && studio.cfg.autosync;
+    if (est) S.lyr = { ...res, synced: true, estimated: true };
+    if (res.synced && res.lines?.length || est) {
+      S.prep = prepare(est ? estLines(m, res) : res.lines, m.duration);
       Object.values(R).forEach((r) => r.mount(S.prep));
       if (S.tr) translate();
     } else {
@@ -318,7 +417,7 @@ function nkMain() {
       if (res.plain) L.plain.append(el('small', null, 'Senkron söz yok · düz metin'), document.createTextNode(res.plain));
     }
     q('.nk-empty p').textContent = res.instrumental ? 'Enstrümantal' : 'Bu şarkı için söz bulunamadı';
-    q('.nk-src').textContent = res.source ? `Sözler: ${res.source}` : '';
+    srcLabel();
     showLayer();
   }
 
@@ -450,12 +549,60 @@ function nkMain() {
   async function loadBeats(m) {
     const tok = ++beatTok;
     S.beats = null;
+    beatKF = null;
+    stopBeat();
     if (!S.pulse) return;
     try {
       const a = await Spicetify.getAudioData(m.uri);
       if (tok !== beatTok) return;
       S.beats = (a?.beats || []).map((b) => ({ t: b.start, c: b.confidence ?? 0.6 }));
+      buildBeat(m.duration);
+      syncBeat();
     } catch {}
+  }
+
+  // Nabız her karede stil yazmıyor (yazmak tüm sayfanın yaşam döngüsünü her karede çalıştırıyordu):
+  // parça başında zarf bir kez hesaplanır, ekran kartında yürüyen tek bir animasyona dönüşür.
+  // Değer 30 adım/sn örneklenir ve yalnızca değişince yeni kare üretilir; görünüm aynı.
+  let beatKF = null, beatAnims = [];
+  function stopBeat() { beatAnims.forEach((a) => a.cancel()); beatAnims = []; }
+  function buildBeat(dur) {
+    stopBeat();
+    beatKF = null;
+    const B = S.beats;
+    if (!B?.length || !dur) return;
+    const HZ = 30, op = [], bl = [], cv = [];
+    let last = -1;
+    const put = (t, v) => {
+      if (v === last) return;
+      last = v;
+      const offset = clamp(t / dur);
+      op.push({ offset, opacity: v, easing: 'step-end' });
+      bl.push({ offset, transform: `scale(${(1 + v * 0.035).toFixed(4)})`, easing: 'step-end' });
+      cv.push({ offset, transform: `scale(${(1 + v * 0.012).toFixed(4)})`, easing: 'step-end' });
+    };
+    put(0, 0);
+    B.forEach((b, i) => {
+      const end = Math.min(B[i + 1]?.t ?? dur, dur);
+      const c = clamp(b.c * 1.4);
+      for (let t = b.t; t < end; t += 1 / HZ) {
+        const v = Math.round(Math.exp(-(t - b.t) * 7) * c * 100) / 100;
+        put(t, v);
+        if (!v) break;
+      }
+    });
+    if (op[op.length - 1].offset < 1) { last = -1; put(dur, 0); }
+    beatKF = { op, bl, cv, ms: dur * 1000 };
+  }
+  function syncBeat() {
+    if (!(beatKF && S.pulse && S.focused && playing() && S.view !== 'closed')) { if (beatAnims.length) stopBeat(); return; }
+    const ms = safe(() => P.getProgress(), 0) || 0;
+    if (!beatAnims.length) {
+      const o = { duration: beatKF.ms, fill: 'both' };
+      beatAnims = [pulseEl.animate(beatKF.op, o), blobsEl.animate(beatKF.bl, o)];
+      if (S.cover) beatAnims.push(coverImg.animate(beatKF.cv, o));
+      beatAnims.forEach((a) => (a.currentTime = ms));
+    } else if (Math.abs(beatAnims[0].currentTime - ms) > 120) beatAnims.forEach((a) => (a.currentTime = ms));
   }
 
   function onSong() {
@@ -472,6 +619,7 @@ function nkMain() {
     q('.nk-cover b').textContent = m.title;
     q('.nk-cover span').textContent = m.artist;
     q('.nk-empty img').src = m.image;
+    q('.nk-kb').src = m.image;
     root.classList.remove('swap');
     void root.offsetWidth;
     root.classList.add('swap');
@@ -520,6 +668,71 @@ function nkMain() {
   // Gizleme/gösterme 6000+ elementi bir kez yeniden yerleştirir (~70-100 ms). Bu, panel tamamen
   // saydamken (morph'un ortası) yapılır: ekranda hareket eden bir şey yokken kaçan kare hissedilmez.
   let hideT = 0;
+  /* ───────────── video arka planı: Spotify'ın döngü videosu (Canvas)
+     Spotify videoyu kendi oynatıcısında parça parça çözüyor (bu sürümde düz mp4 oynatılamıyor).
+     Aynı videoyu ikinci kez çözmek yerine Spotify'ın oynattığı öğeden canlı akış alınır. */
+  const vidEl = root.querySelector('.nk-vid');
+  let vidSrc = null, vidKey = '';
+  const vidWanted = () => (studio.cfg.lbg === 'video' || S.mode === 'clip') && S.view !== 'closed' && !studio.cfg.original;
+  const spotifyVideo = () => [...document.querySelectorAll('video')].find((x) => !x.closest('#zlyrics') && x.currentSrc);
+  // Canvas yalnızca Spotify'ın "Şu anda çalan" paneli açıkken yüklenir. Şarkının videosu varsa
+  // ve panel kapalıysa panel (zLyrics'in arkasında) bir kez açılır.
+  const canvasOf = new Map();
+  const npvTried = new Set();
+  function hasCanvas(uri) {
+    if (!canvasOf.has(uri)) {
+      canvasOf.set(uri, null);
+      Spicetify.GraphQL.Request(Spicetify.GraphQL.Definitions.canvas, { trackUri: uri })
+        .then((r) => { canvasOf.set(uri, !!r?.data?.trackUnion?.canvas?.url); syncVideo(); })
+        .catch(() => canvasOf.set(uri, false));
+      if (canvasOf.size > 200) canvasOf.delete(canvasOf.keys().next().value);
+    }
+    return canvasOf.get(uri);
+  }
+  function openNpv() {
+    const uri = S.uri;
+    if (!uri || npvTried.has(uri) || hasCanvas(uri) !== true) return;
+    const b = document.querySelector('[data-testid="cover-art-button"]');
+    const label = b?.getAttribute('aria-label');
+    if (!b || !label) return;
+    npvTried.add(uri);
+    const open = [...document.querySelectorAll('aside')].some((a) => a.getAttribute('aria-label') === label);
+    if (!open) b.click();
+  }
+  function syncVideo() {
+    const want = vidWanted();
+    const src = want ? spotifyVideo() : null;
+    if (want && !src) openNpv();
+    if (!src) {
+      if (vidSrc) { vidEl.srcObject?.getTracks().forEach((t) => t.stop()); vidEl.srcObject = null; vidSrc = null; vidKey = ''; }
+      root.classList.remove('has-vid');
+      return;
+    }
+    const live = playing() && S.focused;
+    if (live && src.paused) src.play().catch(() => {});
+    const key = src.currentSrc;
+    const ended = vidEl.srcObject?.getVideoTracks().every((t) => t.readyState === 'ended');
+    if (src !== vidSrc || key !== vidKey || ended) {
+      vidEl.srcObject?.getTracks().forEach((t) => t.stop());
+      try { vidEl.srcObject = src.captureStream(); vidSrc = src; vidKey = key; } catch { vidSrc = null; return; }
+    }
+    if (live) { if (vidEl.paused) vidEl.play().catch(() => {}); } else if (!vidEl.paused) vidEl.pause();
+    root.classList.toggle('has-vid', vidEl.videoWidth > 0 || vidEl.readyState >= 2);
+  }
+  vidEl.addEventListener('playing', () => root.classList.add('has-vid'));
+  root.addEventListener('zl-style', () => syncVideo());
+
+  // arkada kalan Spotify döngü videoları (Canvas) görünmezken çözülmeye devam ediyordu
+  // (video arka planı açıkken kaynak olduğu için o hariç)
+  const coveredVids = new Set();
+  function coverVids() {
+    const keep = vidWanted() ? spotifyVideo() : null;
+    coveredVids.forEach((x) => { if (!x.isConnected) coveredVids.delete(x); else if (x === keep || x.checkVisibility()) { x.play().catch(() => {}); coveredVids.delete(x); } });
+    if (S.view !== 'closed') document.querySelectorAll('video').forEach((x) => {
+      if (x !== keep && !x.paused && !x.closest('#zlyrics') && !x.checkVisibility()) { x.pause(); coveredVids.add(x); }
+    });
+    syncVideo();
+  }
   function hideBehind(v, was) {
     const cv = (n, on) => n && (n.style.contentVisibility = on ? 'hidden' : '');
     clearTimeout(hideT);
@@ -531,6 +744,7 @@ function nkMain() {
       cv(document.querySelector('#main-view .main-view-container'), v === 'embed');
       const rp = document.getElementById('Desktop_PanelContainer_Id');
       if (rp) [...rp.children].forEach((c) => cv(c, v === 'side'));
+      coverVids();
     };
     const morphing = was !== 'closed' && v !== 'closed';
     if (v === 'full') hideT = setTimeout(applyNow, morphing ? 135 : 450);
@@ -629,9 +843,10 @@ function nkMain() {
     S.mode = m;
     store.set('mode', m);
     root.dataset.mode = m;
-    root.querySelectorAll('.nk-modes button').forEach((b) => b.classList.toggle('on', b.dataset.mode === m));
+    root.querySelectorAll('.nk-modes button, .nk-modemenu button').forEach((b) => b.classList.toggle('on', b.dataset.mode === m));
     movePill();
     showLayer();
+    syncVideo();
   }
   function movePill() {
     const b = q(`.nk-modes button[data-mode="${S.mode}"]`);
@@ -639,13 +854,43 @@ function nkMain() {
     const pill = q('.nk-pill');
     pill.style.left = b.offsetLeft + 'px';
     pill.style.width = b.offsetWidth + 'px';
+    // seçili mod kayan çubukta görünür kalsın
+    const bar = q('.nk-modes');
+    if (b.offsetLeft < bar.scrollLeft) bar.scrollLeft = b.offsetLeft - 4;
+    else if (b.offsetLeft + b.offsetWidth > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = b.offsetLeft + b.offsetWidth - bar.clientWidth + 4;
   }
+  q('.nk-modes').addEventListener('wheel', (e) => {
+    const bar = e.currentTarget;
+    if (bar.scrollWidth <= bar.clientWidth) return;
+    e.preventDefault();
+    e.stopPropagation();
+    bar.scrollLeft += e.deltaY || e.deltaX;
+  }, { passive: false });
   // butonlar alan daralınca küçülüyor; vurgu her boyut değişiminde yeniden yerleşsin
   new ResizeObserver(() => movePill()).observe(q('.nk-modes'));
+  // Dar alanda (yan panel) altı mod sığmıyor: çubukta yalnızca seçili mod durur, tıklayınca liste açılır
+  const modeMenu = q('.nk-modemenu');
+  const compactModes = () => {
+    const on = S.view === 'side' || (S.view !== 'closed' && root.clientWidth < 640);
+    if (on === root.classList.contains('compact-modes')) return;
+    root.classList.toggle('compact-modes', on);
+    if (!on) modeMenu.classList.remove('open');
+    requestAnimationFrame(movePill);
+  };
+  new ResizeObserver(compactModes).observe(root);
   q('.nk-modes').addEventListener('click', (e) => {
     const b = e.target.closest('button');
+    if (root.classList.contains('compact-modes')) { modeMenu.classList.toggle('open'); return; }
     if (b) setMode(b.dataset.mode);
   });
+  modeMenu.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) setMode(b.dataset.mode);
+    modeMenu.classList.remove('open');
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (modeMenu.classList.contains('open') && !e.target.closest?.('.nk-modemenu, .nk-modes')) modeMenu.classList.remove('open');
+  }, true);
 
   function updateOffset() {
     const o = offset();
@@ -675,8 +920,8 @@ function nkMain() {
   });
 
   const SW = {
-    pulse: (on) => { S.pulse = on; store.set('pulse', on); if (on && S.meta) loadBeats(S.meta); else { S.beats = null; setBeat(0); } },
-    cover: (on) => { S.cover = on; store.set('cover', on); root.classList.toggle('cover', on); requestAnimationFrame(() => R.flow.measure(false)); },
+    pulse: (on) => { S.pulse = on; store.set('pulse', on); if (on && S.meta) loadBeats(S.meta); else { S.beats = null; beatKF = null; stopBeat(); } },
+    cover: (on) => { S.cover = on; store.set('cover', on); root.classList.toggle('cover', on); stopBeat(); syncBeat(); requestAnimationFrame(() => R.flow.measure(false)); },
     tr: setTr,
   };
   function syncSwitches() {
@@ -756,6 +1001,20 @@ function nkMain() {
     }, 2800);
   }
   root.addEventListener('pointermove', poke, { passive: true });
+
+  // Pencerenin küçült/büyüt/kapat düğmeleri Windows'un kendi koyu kutusu; tasarıma uymuyor ve CSS ile
+  // değişmiyor. Tam ekranda bizim üst çubukla birlikte saklanır, fare kıpırdayınca onunla birlikte gelir
+  // (Spotify kendi sinema modunda aynı yolu kullanıyor).
+  let winBtns = true;
+  const syncWinBtns = () => {
+    const show = !(S.view === 'full' && (root.classList.contains('idle') || document.fullscreenElement));
+    if (show === winBtns) return;
+    winBtns = show;
+    try { Spicetify.Platform.NativeAPI?.setWindowButtonsVisibility(show)?.catch?.(() => {}); } catch {}
+  };
+  new MutationObserver(syncWinBtns).observe(root, { attributes: true, attributeFilter: ['class', 'data-view'] });
+  document.addEventListener('fullscreenchange', syncWinBtns);
+  window.addEventListener('beforeunload', () => { if (!winBtns) Spicetify.Platform.NativeAPI?.setWindowButtonsVisibility(true); });
   root.querySelectorAll('.nk-chrome').forEach((c) => {
     c.addEventListener('pointerenter', () => (over = true));
     c.addEventListener('pointerleave', () => { over = false; poke(); });
@@ -775,6 +1034,7 @@ function nkMain() {
     const cycle = () => setMode(MODES[(MODES.indexOf(S.mode) + 1) % MODES.length]);
     const ours = {
       1: () => setMode('flow'), 2: () => setMode('karaoke'), 3: () => setMode('focus'),
+      4: () => setMode('clip'), 5: () => setMode('words'), 6: () => setMode('typer'),
       m: cycle, M: cycle,
       t: actions.tr, T: actions.tr,
       q: actions.queue, Q: actions.queue, '/': actions.search,
@@ -822,7 +1082,7 @@ function nkMain() {
     const p = !playing() || !S.focused;
     amb.classList.toggle('paused', p);
     root.classList.toggle('paused', p);
-    if (p) pulseEl.style.opacity = 0; // (setBeat burada henüz tanımsız değişkene dokunur: açılışta çağrılıyor)
+    syncBeat();
     // Spotify'ın kendi döngü videoları (Canvas): odak dışındayken video çözme işini durdur
     if (!S.focused) {
       document.querySelectorAll('video').forEach((v) => { if (!v.paused && !v.closest('#zlyrics')) { v.pause(); pausedVideos.add(v); } });
@@ -909,42 +1169,59 @@ function nkMain() {
   setMode(S.mode);
 
   /* ───────────── döngü */
-  let lastSec = -1, lastState = 0, lastBeat = -1;
-  // nabız sadece 3 elemente yazılır (kökte değişken olarak tüm söz ağacını yeniden hesaplatıyordu)
-  function setBeat(r) {
-    if (r === lastBeat) return;
-    lastBeat = r;
-    pulseEl.style.opacity = r;
-    blobsEl.style.transform = `scale(${(1 + r * 0.035).toFixed(4)})`;
-    if (S.cover) coverImg.style.transform = `scale(${(1 + r * 0.012).toFixed(4)})`;
-  }
-  // döngü yalnızca söz ekranı açıkken döner; kapalıyken tarayıcı her karede uyandırılmaz
+  let lastSec = -1, lastState = 0, lastSeek = '', shownVol = -1;
+  // Döngü yalnızca söz ekranı açıkken döner. Ekran tazelemesine kilitli değil: 180 Hz monitörde her
+  // kare Spotify'a ~1 ms + ekran kartı süreci ~1.5 ms ekliyordu. Kelime dolumu/kaydırma 60 Hz'de aynı
+  // görünür; Odak kelime sınırlarını 30 Hz'de yakalar; duraklatılmış ve hareketsizken 4 Hz.
+  let loopT = 0, loopRaf = 0;
+  const fpsCap = () => ({ eco: 30, max: 0 })[studio.cfg.fps] ?? 60;
   function startLoop() {
     if (S.looping) return;
     S.looping = true;
-    requestAnimationFrame(frame);
+    loopRaf = requestAnimationFrame(frame);
+  }
+  // etkileşimde (tekerlek, sürükleme, oynat/duraklat) yavaş bekleyişi kes
+  function wake() {
+    if (!S.looping) { if (S.view !== 'closed') startLoop(); return; }
+    if (loopT) { clearTimeout(loopT); loopT = 0; if (!loopRaf) loopRaf = requestAnimationFrame(frame); }
+  }
+  for (const ev of ['wheel', 'pointerdown', 'pointermove', 'touchmove', 'keydown']) root.addEventListener(ev, wake, { passive: true });
+  P.addEventListener('onplaypause', wake);
+  P.addEventListener('songchange', wake);
+  function nextIn(now) {
+    const cap = fpsCap();
+    const fast = cap ? 1000 / cap : 0;
+    const r = R[S.mode];
+    if (scrub != null || (r.busy && r.busy())) return fast;
+    if (!playing()) return 250;
+    if (S.mode === 'focus' || S.mode === 'words' || S.mode === 'typer') return Math.max(fast, 33);
+    return fast;
   }
   function frame(now) {
-    if (S.view === 'closed') { S.looping = false; return; }
-    requestAnimationFrame(frame);
+    loopRaf = 0;
+    if (S.view === 'closed') { S.looping = false; stopBeat(); return; }
+    try { work(now); } finally {
+      const ms = nextIn(now) - (performance.now() - now) - 3;
+      if (ms <= 0) loopRaf = requestAnimationFrame(frame);
+      else loopT = setTimeout(() => { loopT = 0; loopRaf = requestAnimationFrame(frame); }, ms);
+    }
+  }
+  function work(now) {
     const t = tick();
     if (S.prep && S.lyr?.synced) R[S.mode].update(t + offset(), now);
 
     const dur = S.meta?.duration || 0;
     const shown = scrub != null ? scrub * dur : t;
-    seekFill.style.transform = `scaleX(${dur ? clamp(shown / dur).toFixed(4) : 0})`;
+    // alt çubuk yalnızca tam ekranda görünür; her kare stil yazmak tüm sayfanın yaşam döngüsünü tetikliyor
+    if (S.view === 'full') {
+      const sx = dur ? clamp(shown / dur).toFixed(4) : '0';
+      if (sx !== lastSeek) { lastSeek = sx; seekFill.style.transform = `scaleX(${sx})`; }
+    }
     const sec = Math.floor(shown);
     if (sec !== lastSec) {
       lastSec = sec;
       q('.nk-t.cur').textContent = fmt(shown);
       q('.nk-t.dur').textContent = fmt(dur);
-    }
-
-    // ritim nabzı
-    if (S.beats?.length && S.focused && playing()) {
-      const b = S.beats[activeAt(S.beats, t)];
-      const v = b ? Math.exp(-(t - b.t) * 7) * clamp(b.c * 1.4) : 0;
-      setBeat(Math.round(v * 100) / 100);
     }
 
     // sıradaki parça kartı
@@ -964,6 +1241,8 @@ function nkMain() {
     // düşük frekanslı durumlar
     if (now - lastState > 400) {
       lastState = now;
+      syncBeat(); // ileri/geri sarmada nabız animasyonu kayarsa hizala
+      coverVids(); // yeni parçanın arkada açılan videosu
       q('[data-a="shuffle"]').classList.toggle('on', !!safe(() => P.getShuffle(), false));
       const rep = safe(() => P.getRepeat(), 0);
       q('[data-a="repeat"]').classList.toggle('on', rep > 0);
@@ -972,8 +1251,12 @@ function nkMain() {
       const hb = q('[data-a="heart"]');
       if (hb.classList.contains('on') !== h) { hb.classList.toggle('on', h); hb.innerHTML = h ? SVG.heartOn : SVG.heart; }
       const v = safe(() => P.getVolume(), 1);
-      q('.nk-bar.vol .nk-fill').style.transform = `scaleX(${v})`;
-      q('[data-a="mute"]').innerHTML = v > 0 ? SVG.vol : SVG.mute;
+      if (v !== shownVol) {
+        // simgeyi yalnızca sessiz <-> sesli değişince yeniden kur (her 400 ms SVG yeniden yaratılıyordu)
+        if ((v > 0) !== (shownVol > 0) || shownVol < 0) q('[data-a="mute"]').innerHTML = v > 0 ? SVG.vol : SVG.mute;
+        shownVol = v;
+        q('.nk-bar.vol .nk-fill').style.transform = `scaleX(${v})`;
+      }
     }
   }
   if (S.view !== 'closed') startLoop();

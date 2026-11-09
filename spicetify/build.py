@@ -16,7 +16,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ENGINE = os.path.join(HERE, "src", "engine")
-SHARED = ["util.js", "lyrics.js", "flow.js", "karaoke.js", "focus.js"]
+SHARED = ["util.js", "lyrics.js", "autosync.js", "flow.js", "karaoke.js", "focus.js", "modes.js"]
 SPICE = os.path.join(os.environ["APPDATA"], "spicetify")
 CLI = os.path.join(os.environ["LOCALAPPDATA"], "spicetify", "spicetify.exe")
 

@@ -15,11 +15,12 @@
 ## Neler var?
 
 - **Canlı sözler:** Sözler şarkıyla birlikte akar, söylenen kelime anında dolar.
-- **Üç görünüm:** Akış, Karaoke ve Odak.
+- **Altı görünüm:** Akış, Karaoke, Odak, Klip (şarkının döngü videosu ya da kapağı üstünde altyazı), Kelime ve Daktilo.
+- **Senkronu olmayan sözler:** Zaman bilgisi olmayan sözler şarkıya göre kendiliğinden hizalanır; Akış'ta o an duyduğun satıra tıklayarak düzeltebilirsin.
 - **Yan panel ya da tam ekran:** Spotify'ı kullanırken sözler yanda durur, istersen tam ekrana geçer.
 - **Tam ekranda sıra ve arama:** Sözlerden çıkmadan şarkı ara, çal, sıraya ekle.
 - **Çeviri:** Yabancı şarkılarda sözlerin altında çevirisi.
-- **zLyrics Stüdyo:** Renkler, hazır temalar, yazı tipi, köşeler ve söz görünümü. Tek tuşla orijinal Spotify'a dön.
+- **zLyrics Stüdyo:** Renkler, hazır temalar, yazı tipi, köşeler, söz görünümü ve animasyonu. Kendi ayarlarını kaydet. Tek tuşla orijinal Spotify'a dön.
 - **Siyah ve bordo tema:** Yumuşak köşeler, sade cam görünüm.
 
 ---

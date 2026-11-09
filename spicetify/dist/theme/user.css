@@ -82,8 +82,31 @@ html.nk-still #nk-ambient canvas.g { animation: none; }
   content: ""; position: absolute; inset: 0;
   background: radial-gradient(150% 140% at 50% 45%, transparent 52%, rgba(0, 0, 0, .8) 100%);
 }
-@keyframes nk-drift-a { from { transform: scale(3); } to { transform: translate3d(18vmax, 10vmax, 0) scale(3.45); } }
-@keyframes nk-drift-b { from { transform: scale(3); } to { transform: translate3d(-14vmax, -8vmax, 0) scale(2.7); } }
+/* Ortam hareketi ~8 adım/sn: her adımda üstteki cam panellerin bulanıklığı yeniden hesaplanıyor (pahalı);
+   ışıklar çok yavaş ve yumuşak kaydığı için adım başı ~1-2 px, gözle fark edilmez.
+   ease-in-out eğrisi 8 parçaya bölünmüş, görünüm aynı. */
+@keyframes nk-drift-a {
+  0.00% { transform: translate3d(0.00vmax,0.00vmax,0) scale(3.000); animation-timing-function: steps(38, jump-none); }
+  12.50% { transform: translate3d(0.56vmax,0.31vmax,0) scale(3.014); animation-timing-function: steps(38, jump-none); }
+  25.00% { transform: translate3d(2.32vmax,1.29vmax,0) scale(3.058); animation-timing-function: steps(38, jump-none); }
+  37.50% { transform: translate3d(5.27vmax,2.93vmax,0) scale(3.132); animation-timing-function: steps(38, jump-none); }
+  50.00% { transform: translate3d(9.00vmax,5.00vmax,0) scale(3.225); animation-timing-function: steps(38, jump-none); }
+  62.50% { transform: translate3d(12.73vmax,7.07vmax,0) scale(3.318); animation-timing-function: steps(38, jump-none); }
+  75.00% { transform: translate3d(15.68vmax,8.71vmax,0) scale(3.392); animation-timing-function: steps(38, jump-none); }
+  87.50% { transform: translate3d(17.44vmax,9.69vmax,0) scale(3.436); animation-timing-function: steps(38, jump-none); }
+  100.00% { transform: translate3d(18.00vmax,10.00vmax,0) scale(3.450); }
+}
+@keyframes nk-drift-b {
+  0.00% { transform: translate3d(-0.00vmax,-0.00vmax,0) scale(3.000); animation-timing-function: steps(46, jump-none); }
+  12.50% { transform: translate3d(-0.44vmax,-0.25vmax,0) scale(2.991); animation-timing-function: steps(46, jump-none); }
+  25.00% { transform: translate3d(-1.81vmax,-1.03vmax,0) scale(2.961); animation-timing-function: steps(46, jump-none); }
+  37.50% { transform: translate3d(-4.10vmax,-2.34vmax,0) scale(2.912); animation-timing-function: steps(46, jump-none); }
+  50.00% { transform: translate3d(-7.00vmax,-4.00vmax,0) scale(2.850); animation-timing-function: steps(46, jump-none); }
+  62.50% { transform: translate3d(-9.90vmax,-5.66vmax,0) scale(2.788); animation-timing-function: steps(46, jump-none); }
+  75.00% { transform: translate3d(-12.19vmax,-6.97vmax,0) scale(2.739); animation-timing-function: steps(46, jump-none); }
+  87.50% { transform: translate3d(-13.56vmax,-7.75vmax,0) scale(2.709); animation-timing-function: steps(46, jump-none); }
+  100.00% { transform: translate3d(-14.00vmax,-8.00vmax,0) scale(2.700); }
+}
 
 /* ── üst bar */
 #global-nav-bar { background: transparent !important; }
