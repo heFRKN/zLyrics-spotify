@@ -11,6 +11,10 @@
 //  - tam ekran / maximize olunca bölge kalkar, köşe Windows varsayılanına döner (kenar çizgisi kapalı kalır)
 //  - ana pencere: Spotify'ın görünür en büyük penceresi (küçük yardımcı pencerelere takılmaz)
 //  - 127.0.0.1:47391/radius?v=N -> yarıçap (zLyrics Stüdyo'daki kaydırıcı)
+//  - bellek: Spotify ön planda DEĞİLKEN kullanılmayan belleğini Windows'a geri bırakır (EmptyWorkingSet).
+//    Spotify'ın ayırdığı ~700 MB'ın ~500 MB'ı dokunulmayan soğuk sayfalar; bırakılınca yalnızca gerçekten
+//    kullanılan kısım (~200 MB) geri gelir. Ön plandayken hiç dokunulmaz, yani kullanırken takılma olmaz.
+//    Kapatmak için round.json: { "radius": 36, "trim": 0 }
 //
 // Derleme: csc /target:winexe /out:zlyrics-koseler.exe ZLyricsCorners.cs
 
@@ -60,6 +64,8 @@ static class ZLyricsCorners
     [DllImport("dwmapi")] static extern int DwmSetWindowAttribute(IntPtr h, int a, ref int v, int s);
     [DllImport("dwmapi")] static extern int DwmGetWindowAttribute(IntPtr h, int a, out int v, int s);
     [DllImport("dwmapi")] static extern int DwmExtendFrameIntoClientArea(IntPtr h, ref MARGINS m);
+    [DllImport("user32")] static extern IntPtr GetForegroundWindow();
+    [DllImport("psapi")] static extern bool EmptyWorkingSet(IntPtr process);
 
     const uint EVENT_SYSTEM_FOREGROUND = 0x0003, EVENT_SYSTEM_MINIMIZEEND = 0x0017;
     const uint EVENT_OBJECT_SHOW = 0x8002, EVENT_OBJECT_LOCATIONCHANGE = 0x800B;
@@ -91,7 +97,7 @@ static class ZLyricsCorners
             MSG m;
             while (GetMessage(out m, IntPtr.Zero, 0, 0) > 0)
             {
-                if (m.message == WM_TIMER) { Rescan(); Apply(true); }
+                if (m.message == WM_TIMER) { Rescan(); Apply(true); Trim(); }
                 else if (m.message == WM_APP_RADIUS) { radius = (int)m.wParam; lastSig = ""; Apply(true); }
                 TranslateMessage(ref m);
                 DispatchMessage(ref m);
@@ -103,11 +109,50 @@ static class ZLyricsCorners
     {
         try
         {
-            var mm = Regex.Match(File.ReadAllText(CfgFile), "\"radius\"\\s*:\\s*(\\d+)");
+            var cfg = File.ReadAllText(CfgFile);
+            trimOn = !Regex.IsMatch(cfg, "\"trim\"\\s*:\\s*(0|false)");
+            var mm = Regex.Match(cfg, "\"radius\"\\s*:\\s*(\\d+)");
             if (mm.Success) return Math.Min(48, int.Parse(mm.Groups[1].Value));
         }
         catch { }
         return 36;
+    }
+
+    // ── bellek bırakıcı
+    // Yalnızca Spotify ön planda değilken ve toplam çalışma kümesi eşiği aşınca çalışır. Bırakılan sayfalar
+    // silinmez: Windows'un bekleme listesine geçer, Spotify dokunursa diskten okumadan geri gelir.
+    // Bıraktıktan sonra bellek yine eşiği aşıyorsa (gerçekten kullanılıyor demektir) aralık 10 dakikaya
+    // kadar katlanır; boşuna tekrar tekrar bırakılmaz.
+    const long TrimOverBytes = 300L << 20;
+    static bool trimOn = true;
+    static int trimWait = 30;
+    static DateTime trimLast = DateTime.MinValue;
+
+    static void Trim()
+    {
+        if (!trimOn) return;
+        Process[] ps = null;
+        try
+        {
+            ps = Process.GetProcessesByName("Spotify");
+            if (ps.Length == 0) return;
+            uint fg;
+            GetWindowThreadProcessId(GetForegroundWindow(), out fg);
+            long sum = 0;
+            foreach (var p in ps)
+            {
+                if ((uint)p.Id == fg) return; // kullanılıyor: dokunma
+                try { sum += p.WorkingSet64; } catch { }
+            }
+            if (sum < TrimOverBytes) { trimWait = 30; return; }
+            if ((DateTime.UtcNow - trimLast).TotalSeconds < trimWait) return;
+            foreach (var p in ps) { try { EmptyWorkingSet(p.Handle); } catch { } }
+            trimLast = DateTime.UtcNow;
+            trimWait = Math.Min(trimWait * 2, 600);
+            try { using (var me = Process.GetCurrentProcess()) EmptyWorkingSet(me.Handle); } catch { }
+        }
+        catch { }
+        finally { if (ps != null) foreach (var p in ps) p.Dispose(); }
     }
 
     // Ana pencere: Spotify'ın görünür en büyük üst düzey penceresi. Spotify'ın küçük yardımcı
@@ -238,7 +283,7 @@ static class ZLyricsCorners
                     if (mm.Success)
                     {
                         int v = Math.Min(48, int.Parse(mm.Groups[1].Value));
-                        try { File.WriteAllText(CfgFile, "{ \"radius\": " + v + " }"); } catch { }
+                        try { File.WriteAllText(CfgFile, "{ \"radius\": " + v + (trimOn ? "" : ", \"trim\": 0") + " }"); } catch { }
                         PostThreadMessage(mainThread, WM_APP_RADIUS, (IntPtr)v, IntPtr.Zero);
                     }
                     var resp = Encoding.ASCII.GetBytes("HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Private-Network: true\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");

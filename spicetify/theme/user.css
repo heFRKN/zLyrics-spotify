@@ -176,12 +176,9 @@ html.nk-still #nk-ambient canvas.g { animation: none; }
 .main-topBar-background { background-color: rgba(14, 14, 17, .6) !important; backdrop-filter: blur(24px) saturate(160%); }
 
 /* ── sayfa geçişleri
-   Sayfa içeriği tek parça olarak, yalnızca saydamlıkla belirir. Her bölümü ayrı ayrı kaydırmak her geçişte
-   onlarca katman açtırıp geçişi ~%20 yavaşlatıyordu. */
-@keyframes nk-rise { from { opacity: 0; } }
-.main-view-container__scroll-node-child > main {
-  animation: nk-rise .25s var(--nk-ease) backwards;
-}
+   Animasyon YOK: sayfa, Spotify çizdiği ilk karede tam görünür. Eskiden 0.25 sn'lik bir belirme vardı;
+   içerik hazır olduğu halde çeyrek saniye soluk kalıyor, üstüne geçiş boyunca her karede katmanlar
+   yeniden kuruluyordu (ölçüm: geçiş başına ~30 ms fazladan ana iş parçacığı yükü). */
 
 /* ── çalma çubuğu */
 .main-nowPlayingBar-container {
@@ -317,7 +314,6 @@ button[role="checkbox"][aria-checked="true"] > span { box-shadow: 0 6px 18px -8p
 .os-scrollbar-handle { background: rgba(255, 255, 255, .14) !important; border-radius: 99px !important; }
 
 /* ── animasyonlar kapalı (Stüdyo) */
-html.nk-noanim .main-view-container__scroll-node-child > main,
 html.nk-noanim .main-contextMenu-menu,
 html.nk-noanim .nk-swap .main-nowPlayingBar-left img,
 html.nk-noanim .nk-swap .main-nowPlayingBar-left a { animation: none !important; }
@@ -328,5 +324,4 @@ html.nk-noanim .view-homeShortcutsGrid-shortcut:hover { transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
   #nk-ambient canvas.g { animation: none; }
-  .main-view-container__scroll-node-child > main { animation: none; }
 }

@@ -2856,6 +2856,33 @@ function nkMain() {
     }, true);
   }
 
+  // Geri / ileri / ana sayfa: tuş bırakılınca değil, basıldığı an çalışır (basılı tutma süresi ~80-120 ms
+  // kazanılır). Yalnızca üst çubuktaki bu üç buton: sürüklenebilen öğelerde (kitaplık, kartlar) basışta
+  // gezinmek sürükleyip bırakmayı bozardı.
+  let navSwallow = 0, navBtn = null;
+  const instantNav = (t) => {
+    const b = t.closest?.('.Root__globalNav button');
+    if (!b || b.disabled) return null;
+    const all = [...b.closest('.Root__globalNav').querySelectorAll('button')];
+    return all.indexOf(b) < 2 || b.matches('.main-globalNav-navLink') ? b : null;
+  };
+  window.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || !e.isTrusted) return;
+    const b = instantNav(e.target);
+    if (!b) return;
+    navBtn = b;
+    navSwallow = performance.now() + 1500;
+    b.click();
+  }, true);
+  window.addEventListener('click', (e) => {
+    // basışta zaten çalıştı: ardından gelen gerçek tıklamayı yut (klavye tıklaması detail=0, dokunulmaz)
+    if (e.isTrusted && e.detail > 0 && navBtn && performance.now() < navSwallow && instantNav(e.target) === navBtn) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+    if (e.isTrusted) navBtn = null;
+  }, true);
+
   // Spotify'ın kendi söz sayfası -> panel içi zLyrics
   const route = (loc) => {
     watchMain();

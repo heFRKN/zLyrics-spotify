@@ -22,6 +22,7 @@
 - **Çeviri:** Yabancı şarkılarda sözlerin altında çevirisi.
 - **zLyrics Stüdyo:** Renkler, hazır temalar, yazı tipi, köşeler, söz görünümü ve animasyonu. Kendi ayarlarını kaydet. Tek tuşla orijinal Spotify'a dön.
 - **Siyah ve bordo tema:** Yumuşak köşeler, sade cam görünüm.
+- **Hafif:** Spotify arka plandayken kullanmadığı belleği Windows'a geri bırakır (köşe programıyla birlikte gelir); görüntüden ve animasyondan hiçbir şey kısılmaz.
 
 ---
 
